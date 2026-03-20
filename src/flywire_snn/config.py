@@ -25,4 +25,5 @@ class ExperimentConfig:
     annotation_dataset: str = "public"
     materialization: str = "auto"
     rebuild_connectome: bool = False
+    require_real_connectome: bool = False
 

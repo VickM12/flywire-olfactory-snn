@@ -1,3 +1,4 @@
+import os
 import json
 from pathlib import Path
 from typing import Dict, Iterable, List, Tuple
@@ -14,6 +15,23 @@ NT_SIGN = {
     "serotonin": 1.0,
     "octopamine": 1.0,
 }
+
+
+def _sanitize_path_for_navis() -> None:
+    # navis probes PATH entries for external tools; some Windows entries can be unreadable.
+    raw = os.environ.get("PATH", "")
+    if not raw:
+        return
+    safe_entries = []
+    for entry in raw.split(os.pathsep):
+        if not entry:
+            continue
+        try:
+            _ = Path(entry).exists()
+            safe_entries.append(entry)
+        except (PermissionError, OSError):
+            continue
+    os.environ["PATH"] = os.pathsep.join(safe_entries)
 
 
 def _signed_weight(nt_label: str, weight: float) -> float:
@@ -46,14 +64,16 @@ def _build_sparse_from_edges(
 
 
 def _query_neuron_ids(max_neurons: int, dataset: str, materialization: str) -> List[int]:
+    _sanitize_path_for_navis()
     from fafbseg import flywire
 
     flywire.set_default_dataset(dataset)
+    mat = 630 if dataset == "public" and str(materialization) == "auto" else materialization
     nc = flywire.NeuronCriteria
 
-    pns = flywire.search_annotations(nc(cell_class="ALPN"), materialization=materialization)
+    pns = flywire.search_annotations(nc(cell_class="ALPN"), materialization=mat)
     kcs = flywire.search_annotations(
-        nc(cell_class="Kenyon_Cell"), materialization=materialization
+        nc(cell_class="Kenyon_Cell"), materialization=mat
     )
     pn_ids = pns["root_id"].astype(np.int64).tolist()
     kc_ids = kcs["root_id"].astype(np.int64).tolist()
@@ -63,15 +83,17 @@ def _query_neuron_ids(max_neurons: int, dataset: str, materialization: str) -> L
     return ids
 
 
-def _query_edges(ids: Iterable[int], materialization: str):
+def _query_edges(ids: Iterable[int], materialization: str, dataset: str):
+    _sanitize_path_for_navis()
     from fafbseg import flywire
+    mat = 630 if dataset == "public" and str(materialization) == "auto" else materialization
 
     return flywire.get_connectivity(
         list(ids),
         upstream=False,
         downstream=True,
         transmitters=True,
-        materialization=materialization,
+        materialization=mat,
         filtered=True,
         min_score=50,
     )
@@ -111,7 +133,7 @@ def load_or_build_connectome(
 
     try:
         ids = _query_neuron_ids(max_neurons=max_neurons, dataset=dataset, materialization=materialization)
-        edges = _query_edges(ids, materialization=materialization)
+        edges = _query_edges(ids, materialization=materialization, dataset=dataset)
         m, stats = _build_sparse_from_edges(ids, edges)
         if m.nnz == 0:
             raise RuntimeError("FlyWire query returned zero in-subgraph edges.")

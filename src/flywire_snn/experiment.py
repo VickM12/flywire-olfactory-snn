@@ -39,6 +39,11 @@ def run_experiment(cfg: ExperimentConfig) -> Dict[str, object]:
         conn_meta.get("neurons"),
         conn_meta.get("edges"),
     )
+    if conn_meta.get("source") != "flywire":
+        msg = f"Using non-FlyWire connectome source={conn_meta.get('source')}: {conn_meta.get('error', 'no error details')}"
+        if cfg.require_real_connectome:
+            raise RuntimeError(msg)
+        logger.warning(msg)
 
     ds = load_odor_dataset(
         data_dir=cfg.data_dir,

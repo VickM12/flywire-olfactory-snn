@@ -75,3 +75,5 @@ wandb/
 
 # Torch / HF download caches if placed in-repo
 checkpoints/
+
+*.metadata.json

@@ -45,6 +45,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--annotation-dataset", type=str, default="public")
     p.add_argument("--materialization", type=str, default="auto")
     p.add_argument("--rebuild-connectome", action="store_true")
+    p.add_argument("--require-real-connectome", action="store_true")
     p.add_argument("--log-level", type=str, default="INFO")
     return p.parse_args()
 
@@ -62,6 +63,7 @@ def main() -> None:
         annotation_dataset=args.annotation_dataset,
         materialization=args.materialization,
         rebuild_connectome=args.rebuild_connectome,
+        require_real_connectome=args.require_real_connectome,
     )
     logging.getLogger(__name__).info("Run started")
     result = run_experiment(cfg)

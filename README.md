@@ -42,6 +42,12 @@ If you changed graph settings (like `--max-neurons`) and want a fresh FlyWire pu
 python run_experiment.py --epochs 60 --max-neurons 800 --rebuild-connectome
 ```
 
+To fail fast when FlyWire connectivity is unavailable (instead of silently using fallback):
+
+```powershell
+python run_experiment.py --epochs 60 --max-neurons 800 --rebuild-connectome --require-real-connectome
+```
+
 ## Data inputs
 
 - Place Hallem-style data at `data/raw/hallem_carlson_2006.csv`.
