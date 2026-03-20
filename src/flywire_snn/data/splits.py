@@ -160,3 +160,53 @@ def build_splits_for_outer_fold_trials(
         feature_dim=int(base_x.shape[1]),
         num_classes=int(base_x.shape[0]),
     )
+
+
+def build_splits_for_outer_fold_trials_seen_and_heldout(
+    base_x: np.ndarray,
+    train_idx_outer: np.ndarray,
+    test_idx: np.ndarray,
+    train_trials: int,
+    val_trials: int,
+    test_trials: int,
+    noise_std: float,
+    seed: int,
+) -> Tuple[DatasetSplits, torch.Tensor, torch.Tensor]:
+    """Outer CV split returning both seen-test and heldout-test sets.
+
+    - Train/val/test are built from *outer train odors* (seen class identities).
+    - heldout is built from *outer test odors* (unseen class identities) to
+      measure generalization.
+    """
+    train_base = base_x[train_idx_outer]
+    heldout_base = base_x[test_idx]
+
+    mean = train_base.mean(axis=0, keepdims=True)
+    std = train_base.std(axis=0, keepdims=True) + 1e-6
+    train_base_n = (train_base - mean) / std
+    heldout_base_n = (heldout_base - mean) / std
+
+    train_labels = train_idx_outer.astype(np.int64)
+    heldout_labels = test_idx.astype(np.int64)
+
+    rng_train = np.random.default_rng(seed)
+    rng_val = np.random.default_rng(seed + 12345)
+    rng_test = np.random.default_rng(seed + 54321)
+    rng_heldout = np.random.default_rng(seed + 99991)
+
+    train_x, train_y = _build_trials(train_base_n, train_labels, train_trials, noise_std, rng_train)
+    val_x, val_y = _build_trials(train_base_n, train_labels, val_trials, noise_std, rng_val)
+    test_x, test_y = _build_trials(train_base_n, train_labels, test_trials, noise_std, rng_test)
+    heldout_x, heldout_y = _build_trials(heldout_base_n, heldout_labels, test_trials, noise_std, rng_heldout)
+
+    ds = DatasetSplits(
+        train_x=torch.from_numpy(train_x),
+        train_y=torch.from_numpy(train_y),
+        val_x=torch.from_numpy(val_x),
+        val_y=torch.from_numpy(val_y),
+        test_x=torch.from_numpy(test_x),
+        test_y=torch.from_numpy(test_y),
+        feature_dim=int(base_x.shape[1]),
+        num_classes=int(base_x.shape[0]),
+    )
+    return ds, torch.from_numpy(heldout_x), torch.from_numpy(heldout_y)

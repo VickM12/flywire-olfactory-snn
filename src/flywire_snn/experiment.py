@@ -17,6 +17,7 @@ from flywire_snn.data.door import build_or_merge_door_matrix, summarize_door_sou
 from flywire_snn.data.hallem import load_hallem_base_matrix, summarize_dataset_source
 from flywire_snn.data.splits import (
     build_splits_for_outer_fold_trials,
+    build_splits_for_outer_fold_trials_seen_and_heldout,
     make_outer_fold_indices,
 )
 from flywire_snn.models.dense_mlp import DenseMLP
@@ -217,6 +218,16 @@ def run_experiment(cfg: ExperimentConfig) -> Dict[str, object]:
                     noise_std=cfg.noise_std,
                     seed=run_seed + fold,
                 )
+                ds, heldout_x, heldout_y = build_splits_for_outer_fold_trials_seen_and_heldout(
+                    base_x=base_x,
+                    train_idx_outer=train_idx_outer,
+                    test_idx=test_idx,
+                    train_trials=cfg.train_trials_per_odor,
+                    val_trials=cfg.val_trials_per_odor,
+                    test_trials=cfg.test_trials_per_odor,
+                    noise_std=cfg.noise_std,
+                    seed=run_seed + fold,
+                )
 
                 models = _build_models(cfg, connectome, ds.feature_dim, ds.num_classes, run_seed, fold)
 
@@ -237,6 +248,8 @@ def run_experiment(cfg: ExperimentConfig) -> Dict[str, object]:
                         weight_decay=cfg.weight_decay,
                         model_name=f"{dataset_name}/{mname}",
                         early_stopping_patience=cfg.early_stopping_patience,
+                        heldout_x=heldout_x,
+                        heldout_y=heldout_y,
                     )
                     per_run_rows.append(
                         {

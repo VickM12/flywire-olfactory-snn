@@ -33,15 +33,47 @@ def _load_state(model: nn.Module, state: Dict[str, torch.Tensor]) -> None:
 
 
 @torch.no_grad()
-def evaluate(model: nn.Module, x: torch.Tensor, y: torch.Tensor, batch_size: int) -> Tuple[float, float]:
+def evaluate(
+    model: nn.Module,
+    x: torch.Tensor,
+    y: torch.Tensor,
+    batch_size: int,
+    mc_samples: int = 1,
+    restrict_classes: Optional[torch.Tensor] = None,
+) -> Tuple[float, float]:
     model.eval()
+    if restrict_classes is not None:
+        restrict_classes = restrict_classes.to(torch.long).cpu()
     loader = DataLoader(TensorDataset(x, y), batch_size=batch_size, shuffle=False)
     accs = []
     sparsities = []
     for xb, yb in loader:
-        logits, sparsity = model(xb)
-        accs.append(_accuracy(logits, yb))
-        sparsities.append(float(sparsity.item()))
+        if restrict_classes is not None:
+            y_rel = torch.searchsorted(restrict_classes, yb.cpu().to(torch.long))
+        if mc_samples <= 1:
+            logits, sparsity = model(xb)
+            logits = torch.nan_to_num(logits, nan=-1e9)
+            if restrict_classes is not None:
+                logits = logits[:, restrict_classes]
+                accs.append(_accuracy(logits, y_rel))
+            else:
+                accs.append(_accuracy(logits, yb))
+            sparsities.append(float(sparsity.item()))
+        else:
+            logits_sum = None
+            sp_sum = 0.0
+            for _ in range(mc_samples):
+                logits_i, sparsity_i = model(xb)
+                logits_i = torch.nan_to_num(logits_i, nan=-1e9)
+                logits_sum = logits_i if logits_sum is None else logits_sum + logits_i
+                sp_sum += float(sparsity_i.item())
+            logits_mean = logits_sum / float(mc_samples)
+            if restrict_classes is not None:
+                logits_mean = logits_mean[:, restrict_classes]
+                accs.append(_accuracy(logits_mean, y_rel))
+            else:
+                accs.append(_accuracy(logits_mean, yb))
+            sparsities.append(sp_sum / float(mc_samples))
     return float(sum(accs) / max(len(accs), 1)), float(sum(sparsities) / max(len(sparsities), 1))
 
 
@@ -97,7 +129,8 @@ def train_model(
 
         train_acc = epoch_acc / max(num_batches, 1)
         train_sparse = epoch_sparse / max(num_batches, 1)
-        val_acc, _ = evaluate(model, val_x, val_y, batch_size=batch_size)
+        mc = 5 if "SNN" in model_name else 1
+        val_acc, _ = evaluate(model, val_x, val_y, batch_size=batch_size, mc_samples=mc)
         if epochs_to_80 < 0 and val_acc >= 0.8:
             epochs_to_80 = epoch
 
@@ -136,9 +169,20 @@ def train_model(
 
     _load_state(model, best_state)
 
-    test_acc, test_sparse = evaluate(model, test_x, test_y, batch_size=batch_size)
+    mc = 5 if "SNN" in model_name else 1
+    test_acc, test_sparse = evaluate(model, test_x, test_y, batch_size=batch_size, mc_samples=mc)
     if heldout_x is not None and heldout_y is not None:
-        heldout_acc, _ = evaluate(model, heldout_x, heldout_y, batch_size=batch_size)
+        # Held-out generalization should be measured by choosing the correct
+        # held-out odor among *held-out candidates*, not among all seen odors.
+        candidates = torch.unique(heldout_y).sort().values
+        heldout_acc, _ = evaluate(
+            model,
+            heldout_x,
+            heldout_y,
+            batch_size=batch_size,
+            mc_samples=mc,
+            restrict_classes=candidates,
+        )
     else:
         heldout_acc = float("nan")
 
