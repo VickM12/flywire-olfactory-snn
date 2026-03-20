@@ -21,13 +21,26 @@ on a Drosophila odor classification task inspired by Hallem & Carlson (2006).
 pip install -r requirements.txt
 ```
 
-3. Run:
+3. Optional (for real FlyWire pulls instead of fallback graph):
+
+```powershell
+pip install -r requirements-flywire.txt
+```
+
+4. Run:
 
 ```powershell
 python run_experiment.py --epochs 60 --max-neurons 800
 ```
 
 Results are written to `results/comparison.json`.
+Training logs are written to `results/run.log` and echoed to console.
+
+If you changed graph settings (like `--max-neurons`) and want a fresh FlyWire pull:
+
+```powershell
+python run_experiment.py --epochs 60 --max-neurons 800 --rebuild-connectome
+```
 
 ## Data inputs
 
@@ -46,6 +59,11 @@ If the CSV is missing, the pipeline falls back to a synthetic 110x24 matrix so t
 - caches as `data/processed/olfactory_connectome.npz`.
 
 If FlyWire access fails (credentials/network/materialization mismatch), a sparse random fallback graph is generated to keep the training flow testable.
+
+## Python compatibility
+
+- Base experiment stack works on Python 3.10+.
+- FlyWire deps can be more version-sensitive; if optional FlyWire install fails on your interpreter, run the base stack first and continue with fallback graph mode.
 
 ## Notes
 

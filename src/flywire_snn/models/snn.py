@@ -54,11 +54,10 @@ class MaskedRecurrentLIFSNN(nn.Module):
         spk_prev = torch.zeros(batch_size, self.recurrent.shape[0], device=device)
 
         signed_masked_rec = self.recurrent * self.rec_mask * self.rec_sign
-        input_current = self.input_proj(rates)
-
         for _ in range(self.steps):
             poisson = torch.bernoulli(rates)
-            current = input_current * poisson + torch.matmul(spk_prev, signed_masked_rec.T)
+            input_current = self.input_proj(poisson * rates)
+            current = input_current + torch.matmul(spk_prev, signed_masked_rec.T)
             spk, state = self.lif(current, state)
             spikes_acc = spikes_acc + spk
             spk_prev = spk

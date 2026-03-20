@@ -24,4 +24,5 @@ class ExperimentConfig:
     connectome_cache: str = "olfactory_connectome.npz"
     annotation_dataset: str = "public"
     materialization: str = "auto"
+    rebuild_connectome: bool = False
 

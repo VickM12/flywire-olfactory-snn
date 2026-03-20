@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import logging
 from typing import Dict, List, Tuple
 
 import torch
@@ -47,7 +48,9 @@ def train_model(
     batch_size: int,
     lr: float,
     weight_decay: float,
+    model_name: str = "model",
 ) -> TrainResult:
+    logger = logging.getLogger(__name__)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     criterion = nn.CrossEntropyLoss()
     train_loader = DataLoader(TensorDataset(train_x, train_y), batch_size=batch_size, shuffle=True)
@@ -88,9 +91,27 @@ def train_model(
                 "spike_sparsity": train_sparse,
             }
         )
+        logger.info(
+            "[%s] epoch %d/%d loss=%.4f train_acc=%.4f val_acc=%.4f spike_sparsity=%.4f",
+            model_name,
+            epoch,
+            epochs,
+            history[-1]["loss"],
+            train_acc,
+            val_acc,
+            train_sparse,
+        )
 
     test_acc, test_sparse = evaluate(model, test_x, test_y, batch_size=batch_size)
     heldout_acc, _ = evaluate(model, heldout_x, heldout_y, batch_size=batch_size)
+    logger.info(
+        "[%s] final test_acc=%.4f heldout_acc=%.4f spike_sparsity=%.4f epochs_to_80=%d",
+        model_name,
+        test_acc,
+        heldout_acc,
+        test_sparse,
+        epochs_to_80,
+    )
 
     return TrainResult(
         history=history,

@@ -14,7 +14,3 @@ torchaudio
 
 # Spiking neural networks
 norse
-
-# FlyWire / connectome access
-fafbseg-py
-caveclient

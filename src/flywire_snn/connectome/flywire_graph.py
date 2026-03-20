@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from typing import Dict, Iterable, List, Tuple
 
@@ -92,11 +93,21 @@ def load_or_build_connectome(
     max_neurons: int,
     dataset: str = "public",
     materialization: str = "auto",
+    force_rebuild: bool = False,
 ) -> Tuple[sp.csr_matrix, Dict[str, object]]:
     cache_path.parent.mkdir(parents=True, exist_ok=True)
-    if cache_path.exists():
+    meta_path = cache_path.with_suffix(".meta.json")
+    if cache_path.exists() and meta_path.exists() and not force_rebuild:
+        with meta_path.open("r", encoding="utf-8") as f:
+            meta = json.load(f)
         m = sp.load_npz(cache_path)
-        return m.tocsr(), {"source": "cache", "neurons": int(m.shape[0]), "edges": int(m.nnz)}
+        cached_n = int(m.shape[0])
+        if (
+            cached_n == int(max_neurons)
+            and meta.get("dataset") == dataset
+            and str(meta.get("materialization")) == str(materialization)
+        ):
+            return m.tocsr(), {"source": "cache", "neurons": cached_n, "edges": int(m.nnz)}
 
     try:
         ids = _query_neuron_ids(max_neurons=max_neurons, dataset=dataset, materialization=materialization)
@@ -105,10 +116,37 @@ def load_or_build_connectome(
         if m.nnz == 0:
             raise RuntimeError("FlyWire query returned zero in-subgraph edges.")
         sp.save_npz(cache_path, m)
+        with meta_path.open("w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "dataset": dataset,
+                    "materialization": materialization,
+                    "max_neurons": int(max_neurons),
+                    "source": "flywire",
+                    "neurons": int(m.shape[0]),
+                    "edges": int(m.nnz),
+                },
+                f,
+                indent=2,
+            )
         return m, {"source": "flywire", **stats}
     except Exception as exc:  # pragma: no cover - fallback for offline/auth issues
         m = _random_fallback_graph(n=max_neurons)
         sp.save_npz(cache_path, m)
+        with meta_path.open("w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    "dataset": dataset,
+                    "materialization": materialization,
+                    "max_neurons": int(max_neurons),
+                    "source": "random_fallback",
+                    "neurons": int(m.shape[0]),
+                    "edges": int(m.nnz),
+                    "error": str(exc),
+                },
+                f,
+                indent=2,
+            )
         return m, {
             "source": "random_fallback",
             "neurons": int(m.shape[0]),
