@@ -65,7 +65,6 @@ Thumbs.db
 data/cache/
 data/raw/
 data/processed/*.npz
-data/processed/*.npz
 results/
 runs/
 wandb/

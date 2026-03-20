@@ -1,0 +1,20 @@
+numpy
+scipy
+pandas
+scikit-learn
+tqdm
+pyyaml
+matplotlib
+seaborn
+
+# CPU PyTorch stack
+torch
+torchvision
+torchaudio
+
+# Spiking neural networks
+norse
+
+# FlyWire / connectome access
+fafbseg-py
+caveclient
