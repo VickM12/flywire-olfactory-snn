@@ -26,6 +26,12 @@ def _default_dataset_path(data_dir: Path) -> Path:
     return data_dir / "raw" / "hallem_carlson_2006.csv"
 
 
+def load_hallem_base_matrix(data_dir: Path) -> np.ndarray:
+    """Odor × receptor matrix (float32) for CV; row index = global class id."""
+    df = _load_or_build_base_matrix(data_dir)
+    return df.drop(columns=["odor"]).to_numpy(dtype=np.float32)
+
+
 def _load_or_build_base_matrix(data_dir: Path) -> pd.DataFrame:
     csv_path = _default_dataset_path(data_dir)
     if csv_path.exists():

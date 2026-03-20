@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import logging
-from typing import Dict, List, Tuple
+import math
+from typing import Dict, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -14,11 +15,21 @@ class TrainResult:
     heldout_acc: float
     epochs_to_80: int
     final_spike_sparsity: float
+    stopped_epoch: int
+    best_val_acc: float
 
 
 def _accuracy(logits: torch.Tensor, y: torch.Tensor) -> float:
     pred = logits.argmax(dim=1)
     return float((pred == y).float().mean().item())
+
+
+def _state_dict_cpu_clone(model: nn.Module) -> Dict[str, torch.Tensor]:
+    return {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+
+
+def _load_state(model: nn.Module, state: Dict[str, torch.Tensor]) -> None:
+    model.load_state_dict({k: v.to(next(model.parameters()).device) for k, v in state.items()})
 
 
 @torch.no_grad()
@@ -42,13 +53,14 @@ def train_model(
     val_y: torch.Tensor,
     test_x: torch.Tensor,
     test_y: torch.Tensor,
-    heldout_x: torch.Tensor,
-    heldout_y: torch.Tensor,
     epochs: int,
     batch_size: int,
     lr: float,
     weight_decay: float,
     model_name: str = "model",
+    early_stopping_patience: int = 5,
+    heldout_x: Optional[torch.Tensor] = None,
+    heldout_y: Optional[torch.Tensor] = None,
 ) -> TrainResult:
     logger = logging.getLogger(__name__)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
@@ -57,6 +69,10 @@ def train_model(
 
     history: List[Dict[str, float]] = []
     epochs_to_80 = -1
+    best_val = -1.0
+    best_state: Optional[Dict[str, torch.Tensor]] = None
+    patience_left = early_stopping_patience
+    stopped_epoch = 0
 
     for epoch in range(1, epochs + 1):
         model.train()
@@ -102,15 +118,37 @@ def train_model(
             train_sparse,
         )
 
+        if val_acc > best_val + 1e-6:
+            best_val = val_acc
+            best_state = _state_dict_cpu_clone(model)
+            patience_left = early_stopping_patience
+        else:
+            patience_left -= 1
+            if patience_left <= 0:
+                stopped_epoch = epoch
+                break
+    else:
+        stopped_epoch = epochs
+
+    if best_state is not None:
+        _load_state(model, best_state)
+
     test_acc, test_sparse = evaluate(model, test_x, test_y, batch_size=batch_size)
-    heldout_acc, _ = evaluate(model, heldout_x, heldout_y, batch_size=batch_size)
+    if heldout_x is not None and heldout_y is not None:
+        heldout_acc, _ = evaluate(model, heldout_x, heldout_y, batch_size=batch_size)
+    else:
+        heldout_acc = float("nan")
+
+    ha_str = f"{heldout_acc:.4f}" if not math.isnan(heldout_acc) else "nan"
     logger.info(
-        "[%s] final test_acc=%.4f heldout_acc=%.4f spike_sparsity=%.4f epochs_to_80=%d",
+        "[%s] final test_acc=%.4f heldout_acc=%s spike_sparsity=%.4f epochs_to_80=%d stopped_epoch=%d best_val=%.4f",
         model_name,
         test_acc,
-        heldout_acc,
+        ha_str,
         test_sparse,
         epochs_to_80,
+        stopped_epoch,
+        best_val,
     )
 
     return TrainResult(
@@ -119,5 +157,6 @@ def train_model(
         heldout_acc=heldout_acc,
         epochs_to_80=epochs_to_80,
         final_spike_sparsity=test_sparse,
+        stopped_epoch=stopped_epoch,
+        best_val_acc=best_val,
     )
-

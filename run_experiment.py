@@ -11,7 +11,7 @@ if str(SRC) not in sys.path:
 
 from flywire_snn.config import ExperimentConfig
 from flywire_snn.connectome.auth import apply_flywire_token_from_env, load_dotenv_if_present
-from flywire_snn.experiment import run_experiment
+from flywire_snn.experiment import format_summary_table, run_experiment
 
 
 def configure_logging(result_dir: Path, level_name: str) -> None:
@@ -36,7 +36,7 @@ def configure_logging(result_dir: Path, level_name: str) -> None:
 
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description="FlyWire connectome SNN vs MLP experiment")
+    p = argparse.ArgumentParser(description="FlyWire connectome SNN vs baselines (DoOR primary)")
     p.add_argument("--epochs", type=int, default=80)
     p.add_argument("--batch-size", type=int, default=32)
     p.add_argument("--seed", type=int, default=7)
@@ -47,6 +47,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--materialization", type=str, default="auto")
     p.add_argument("--rebuild-connectome", action="store_true")
     p.add_argument("--require-real-connectome", action="store_true")
+    p.add_argument("--n-folds", type=int, default=5)
+    p.add_argument("--n-seeds", type=int, default=5)
+    p.add_argument("--early-stopping-patience", type=int, default=5)
+    p.add_argument("--skip-hallem-secondary", action="store_true")
+    p.add_argument("--refresh-door-cache", action="store_true")
     p.add_argument("--log-level", type=str, default="INFO")
     return p.parse_args()
 
@@ -67,13 +72,26 @@ def main() -> None:
         materialization=args.materialization,
         rebuild_connectome=args.rebuild_connectome,
         require_real_connectome=args.require_real_connectome,
+        n_cv_folds=args.n_folds,
+        n_seeds=args.n_seeds,
+        early_stopping_patience=args.early_stopping_patience,
+        run_hallem_secondary=not args.skip_hallem_secondary,
+        refresh_door_cache=args.refresh_door_cache,
     )
     logging.getLogger(__name__).info("Run started")
-    result = run_experiment(cfg)
-    print(json.dumps(result["models"], indent=2))
-    print(f"Saved results to: {cfg.result_dir / 'comparison.json'}")
+    payload = run_experiment(cfg)
+
+    summ = payload.get("summary", {})
+    if "DoOR" in summ:
+        print("\n=== DoOR (primary) ===\n")
+        print(format_summary_table(summ["DoOR"]))
+    if "HallemCarlson" in summ:
+        print("\n=== Hallem–Carlson (secondary) ===\n")
+        print(format_summary_table(summ["HallemCarlson"]))
+
+    print(f"\nSaved results to: {cfg.result_dir / 'comparison.json'}")
+    print(json.dumps(summ, indent=2))
 
 
 if __name__ == "__main__":
     main()
-

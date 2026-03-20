@@ -1,11 +1,22 @@
 # FlyWire Olfactory SNN Experiment
 
-This project compares:
+This project compares a **FlyWire connectome–constrained recurrent LIF SNN** (`MaskedRecurrentLIFSNN` / **ConnectomeSNN** in logs) against publication-oriented baselines on odor classification.
 
-- a FlyWire-connectome-constrained recurrent LIF SNN (Norse + surrogate gradients), and
-- a parameter-matched unconstrained MLP baseline
+**Models (single `run_experiment.py` run):**
 
-on a Drosophila odor classification task inspired by Hallem & Carlson (2006).
+| Model | Description |
+|-------|-------------|
+| **ConnectomeSNN** | Connectome-masked recurrent LIF SNN (Norse + surrogate gradients). |
+| **ShuffledSNN** | Same architecture and dynamics; recurrent mask is **degree-preserving shuffled** (isolates topology vs sparsity). |
+| **SparseMLP** | Two-hidden-layer ReLU MLP; fixed **random** masks at the **same density** as the connectome recurrent matrix. |
+| **DenseMLP** | Fully connected ReLU MLP; hidden width chosen to **match ConnectomeSNN parameter count** (approximately). |
+
+**Data:**
+
+- **Primary:** **DoOR** — merged matrix built from [ropensci/DoOR.data](https://github.com/ropensci/DoOR.data) `Or*.csv` files (cached as `data/processed/door_or_merged.csv`).
+- **Secondary:** **Hallem–Carlson** — `data/raw/hallem_carlson_2006.csv` (or synthetic 110×24 fallback if missing).
+
+**Protocol:** 5-fold CV × 5 seeds (25 runs per model per dataset), **early stopping** (patience 5 on validation accuracy, restore best weights). Summary = mean ± std; JSON includes every run in `per_run`.
 
 ## Quick start
 
@@ -19,83 +30,46 @@ on a Drosophila odor classification task inspired by Hallem & Carlson (2006).
 
 ```powershell
 pip install -r requirements.txt
+pip install -r requirements-flywire.txt
 ```
 
-3. Optional (for real FlyWire pulls instead of fallback graph):
+3. **FlyWire token** (for real connectivity): set `FLYWIRE_TOKEN` or `CAVE_TOKEN` (see `.env.example` and section below).
+
+4. Run (DoOR primary + Hallem secondary by default):
 
 ```powershell
-pip install -r requirements-flywire.txt
+python run_experiment.py --epochs 80 --max-neurons 800
+```
+
+Outputs:
+
+- `results/comparison.json` — full summary + `per_run` table
+- `results/run.log` — training logs
+- Printed ASCII summary tables for DoOR and Hallem
+
+### Useful flags
+
+```text
+--n-folds 5 --n-seeds 5 --early-stopping-patience 5
+--skip-hallem-secondary
+--refresh-door-cache
+--rebuild-connectome --require-real-connectome
 ```
 
 ### FlyWire / CAVE API token
 
-Connectivity queries need a token from [global.daf-apis.com](https://global.daf-apis.com) (same account as Codex). `run_experiment.py` reads **`FLYWIRE_TOKEN`** or **`CAVE_TOKEN`** from the environment and registers it with `fafbseg` via `set_chunkedgraph_secret`.
+Connectivity queries need a token from [global.daf-apis.com](https://global.daf-apis.com). `run_experiment.py` loads `.env` (if `python-dotenv` is installed) and calls `fafbseg.flywire.set_chunkedgraph_secret` when `FLYWIRE_TOKEN` or `CAVE_TOKEN` is set.
 
-**Option A — `.env` in the repo root** (gitignored; requires `python-dotenv` from `requirements-flywire.txt`):
+## Connectome
 
-```text
-FLYWIRE_TOKEN=paste_your_token_here
-```
-
-**Option B — PowerShell for this session:**
-
-```powershell
-$env:FLYWIRE_TOKEN = "paste_your_token_here"
-```
-
-Then rebuild the connectome and require a real graph:
-
-```powershell
-python run_experiment.py --epochs 60 --max-neurons 800 --rebuild-connectome --require-real-connectome
-```
-
-4. Run:
-
-```powershell
-python run_experiment.py --epochs 60 --max-neurons 800
-```
-
-Results are written to `results/comparison.json`.
-Training logs are written to `results/run.log` and echoed to console.
-
-If you changed graph settings (like `--max-neurons`) and want a fresh FlyWire pull:
-
-```powershell
-python run_experiment.py --epochs 60 --max-neurons 800 --rebuild-connectome
-```
-
-To fail fast when FlyWire connectivity is unavailable (instead of silently using fallback):
-
-```powershell
-python run_experiment.py --epochs 60 --max-neurons 800 --rebuild-connectome --require-real-connectome
-```
-
-## Data inputs
-
-- Place Hallem-style data at `data/raw/hallem_carlson_2006.csv`.
-- Expected format: first column `odor`, remaining 24 receptor response columns.
-
-If the CSV is missing, the pipeline falls back to a synthetic 110x24 matrix so the code remains runnable.
-
-## Connectome construction
-
-`src/flywire_snn/connectome/flywire_graph.py`:
-
-- queries FlyWire annotations for `ALPN` + `Kenyon_Cell`,
-- fetches in-subgraph connectivity using `fafbseg-py`,
-- builds a signed sparse matrix from transmitter labels,
-- caches as `data/processed/olfactory_connectome.npz`.
-
-If FlyWire access fails (credentials/network/materialization mismatch), a sparse random fallback graph is generated to keep the training flow testable.
+The FlyWire subgraph loader lives in `src/flywire_snn/connectome/flywire_graph.py` (cached at `data/processed/olfactory_connectome.npz`). Experiment code records **directed edge count** as `connectome.nnz` when metadata uses `edges_kept` instead of `edges`.
 
 ## Python compatibility
 
-- Base experiment stack works on Python 3.10+.
-- FlyWire deps can be more version-sensitive; if optional FlyWire install fails on your interpreter, run the base stack first and continue with fallback graph mode.
+- Python 3.10+ recommended.
+- First DoOR build downloads many CSVs from GitHub (one-time; then uses local cache).
 
 ## Notes
 
-- The recurrent SNN topology is fixed by the connectome mask; only magnitudes are trainable.
-- Sign is preserved by multiplying trainable magnitudes with a fixed `sign` mask.
-- Training is CPU-friendly by default (small batches, moderate time steps).
-
+- **ConnectomeSNN** implementation: `src/flywire_snn/models/snn.py` (unchanged by baseline additions).
+- Training uses **CPU**-friendly defaults; adjust `--batch-size` / `--epochs` as needed.
