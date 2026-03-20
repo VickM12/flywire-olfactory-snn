@@ -70,7 +70,10 @@ def train_model(
     history: List[Dict[str, float]] = []
     epochs_to_80 = -1
     best_val = -1.0
-    best_state: Optional[Dict[str, torch.Tensor]] = None
+    best_epoch = 0
+    # Always have a checkpoint so final evaluation never accidentally uses
+    # "last epoch" weights when val_acc never improves (e.g. NaNs).
+    best_state: Dict[str, torch.Tensor] = _state_dict_cpu_clone(model)
     patience_left = early_stopping_patience
     stopped_epoch = 0
 
@@ -121,6 +124,7 @@ def train_model(
         if val_acc > best_val + 1e-6:
             best_val = val_acc
             best_state = _state_dict_cpu_clone(model)
+            best_epoch = epoch
             patience_left = early_stopping_patience
         else:
             patience_left -= 1
@@ -130,8 +134,7 @@ def train_model(
     else:
         stopped_epoch = epochs
 
-    if best_state is not None:
-        _load_state(model, best_state)
+    _load_state(model, best_state)
 
     test_acc, test_sparse = evaluate(model, test_x, test_y, batch_size=batch_size)
     if heldout_x is not None and heldout_y is not None:
@@ -141,7 +144,7 @@ def train_model(
 
     ha_str = f"{heldout_acc:.4f}" if not math.isnan(heldout_acc) else "nan"
     logger.info(
-        "[%s] final test_acc=%.4f heldout_acc=%s spike_sparsity=%.4f epochs_to_80=%d stopped_epoch=%d best_val=%.4f",
+        "[%s] final test_acc=%.4f heldout_acc=%s spike_sparsity=%.4f epochs_to_80=%d stopped_epoch=%d best_val=%.4f best_epoch=%d",
         model_name,
         test_acc,
         ha_str,
@@ -149,6 +152,7 @@ def train_model(
         epochs_to_80,
         stopped_epoch,
         best_val,
+        best_epoch,
     )
 
     return TrainResult(

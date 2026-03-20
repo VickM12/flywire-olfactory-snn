@@ -15,7 +15,10 @@ from flywire_snn.config import ExperimentConfig
 from flywire_snn.connectome.flywire_graph import load_or_build_connectome
 from flywire_snn.data.door import build_or_merge_door_matrix, summarize_door_source
 from flywire_snn.data.hallem import load_hallem_base_matrix, summarize_dataset_source
-from flywire_snn.data.splits import build_splits_for_fold, make_fold_indices
+from flywire_snn.data.splits import (
+    build_splits_for_outer_fold_trials,
+    make_outer_fold_indices,
+)
 from flywire_snn.models.dense_mlp import DenseMLP
 from flywire_snn.models.shuffled_snn import ShuffledSNN
 from flywire_snn.models.sparse_mlp import recurrent_sparsity_ratio, SparseMLP
@@ -164,14 +167,24 @@ def run_experiment(cfg: ExperimentConfig) -> Dict[str, object]:
         conn_log.get("neurons"),
         n_edges,
     )
-    if conn_meta.get("source") != "flywire":
-        msg = (
-            f"Using non-FlyWire connectome source={conn_meta.get('source')}: "
-            f"{conn_meta.get('error', 'no error details')}"
-        )
-        if cfg.require_real_connectome:
+    if cfg.require_real_connectome:
+        src = str(conn_meta.get("source", ""))
+        err = conn_meta.get("error", None)
+        # A cached connectome can still be the real FlyWire one; only fail if the
+        # cache was generated from fallback or has an explicit error recorded.
+        if src not in ("flywire", "cache") or err:
+            msg = (
+                f"Using non-FlyWire connectome source={conn_meta.get('source')}: "
+                f"{conn_meta.get('error', 'no error details')}"
+            )
             raise RuntimeError(msg)
-        logger.warning(msg)
+    else:
+        if conn_meta.get("source") not in ("flywire", "cache"):
+            msg = (
+                f"Using non-FlyWire connectome source={conn_meta.get('source')}: "
+                f"{conn_meta.get('error', 'no error details')}"
+            )
+            logger.warning(msg)
 
     door_base, _, _ = build_or_merge_door_matrix(cfg.data_dir, force_refresh=cfg.refresh_door_cache)
     hallem_base = load_hallem_base_matrix(cfg.data_dir)
@@ -188,18 +201,16 @@ def run_experiment(cfg: ExperimentConfig) -> Dict[str, object]:
         for seed_i in range(cfg.n_seeds):
             run_seed = cfg.seed + seed_i * 1_003
             for fold in range(cfg.n_cv_folds):
-                train_idx, val_idx, test_idx = make_fold_indices(
-                    n_classes,
+                train_idx_outer, test_idx = make_outer_fold_indices(
+                    n_classes=n_classes,
                     fold=fold,
                     n_folds=cfg.n_cv_folds,
                     seed=run_seed,
-                    val_fraction=cfg.cv_val_fraction,
                 )
-                ds = build_splits_for_fold(
-                    base_x,
-                    train_idx,
-                    val_idx,
-                    test_idx,
+                ds = build_splits_for_outer_fold_trials(
+                    base_x=base_x,
+                    train_idx_outer=train_idx_outer,
+                    test_idx=test_idx,
                     train_trials=cfg.train_trials_per_odor,
                     val_trials=cfg.val_trials_per_odor,
                     test_trials=cfg.test_trials_per_odor,

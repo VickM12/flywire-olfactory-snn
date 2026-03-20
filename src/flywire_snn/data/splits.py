@@ -54,6 +54,24 @@ def make_fold_indices(
     return train_idx, val_idx, test_idx
 
 
+def make_outer_fold_indices(
+    n_classes: int,
+    fold: int,
+    n_folds: int,
+    seed: int,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """Outer CV split over odor identities.
+
+    We hold out some odors entirely for test evaluation, but for early stopping we
+    still validate on different trials of odors seen in training (so val classes are
+    not unseen).
+    """
+    kf = KFold(n_splits=n_folds, shuffle=True, random_state=seed)
+    splits: List[Tuple[np.ndarray, np.ndarray]] = list(kf.split(np.arange(n_classes)))
+    train_idx_outer, test_idx = splits[fold]
+    return train_idx_outer, test_idx
+
+
 def build_splits_for_fold(
     base_x: np.ndarray,
     train_idx: np.ndarray,
@@ -82,6 +100,54 @@ def build_splits_for_fold(
 
     train_x, train_y = _build_trials(train_base_n, train_labels, train_trials, noise_std, rng)
     val_x, val_y = _build_trials(val_base_n, val_labels, val_trials, noise_std, rng)
+    test_x, test_y = _build_trials(test_base_n, test_labels, test_trials, noise_std, rng)
+
+    return DatasetSplits(
+        train_x=torch.from_numpy(train_x),
+        train_y=torch.from_numpy(train_y),
+        val_x=torch.from_numpy(val_x),
+        val_y=torch.from_numpy(val_y),
+        test_x=torch.from_numpy(test_x),
+        test_y=torch.from_numpy(test_y),
+        feature_dim=int(base_x.shape[1]),
+        num_classes=int(base_x.shape[0]),
+    )
+
+
+def build_splits_for_outer_fold_trials(
+    base_x: np.ndarray,
+    train_idx_outer: np.ndarray,
+    test_idx: np.ndarray,
+    train_trials: int,
+    val_trials: int,
+    test_trials: int,
+    noise_std: float,
+    seed: int,
+) -> DatasetSplits:
+    """Build train/val/test datasets for an outer CV fold.
+
+    - Outer train odors = `train_idx_outer` (labels are seen during training)
+    - Outer test odors = `test_idx` (true generalization evaluation)
+    - Validation set uses different noisy trials from the same outer train odors.
+    """
+    rng = np.random.default_rng(seed)
+    train_base = base_x[train_idx_outer]
+    test_base = base_x[test_idx]
+
+    mean = train_base.mean(axis=0, keepdims=True)
+    std = train_base.std(axis=0, keepdims=True) + 1e-6
+    train_base_n = (train_base - mean) / std
+    test_base_n = (test_base - mean) / std
+
+    # Val uses the same odor identities as training (different trial noise).
+    train_labels = train_idx_outer.astype(np.int64)
+    val_labels = train_idx_outer.astype(np.int64)
+    test_labels = test_idx.astype(np.int64)
+
+    train_x, train_y = _build_trials(
+        train_base_n, train_labels, train_trials, noise_std, rng
+    )
+    val_x, val_y = _build_trials(train_base_n, val_labels, val_trials, noise_std, rng)
     test_x, test_y = _build_trials(test_base_n, test_labels, test_trials, noise_std, rng)
 
     return DatasetSplits(
