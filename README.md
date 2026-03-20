@@ -27,6 +27,28 @@ pip install -r requirements.txt
 pip install -r requirements-flywire.txt
 ```
 
+### FlyWire / CAVE API token
+
+Connectivity queries need a token from [global.daf-apis.com](https://global.daf-apis.com) (same account as Codex). `run_experiment.py` reads **`FLYWIRE_TOKEN`** or **`CAVE_TOKEN`** from the environment and registers it with `fafbseg` via `set_chunkedgraph_secret`.
+
+**Option A — `.env` in the repo root** (gitignored; requires `python-dotenv` from `requirements-flywire.txt`):
+
+```text
+FLYWIRE_TOKEN=paste_your_token_here
+```
+
+**Option B — PowerShell for this session:**
+
+```powershell
+$env:FLYWIRE_TOKEN = "paste_your_token_here"
+```
+
+Then rebuild the connectome and require a real graph:
+
+```powershell
+python run_experiment.py --epochs 60 --max-neurons 800 --rebuild-connectome --require-real-connectome
+```
+
 4. Run:
 
 ```powershell

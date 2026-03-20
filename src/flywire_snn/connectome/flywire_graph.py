@@ -1,10 +1,11 @@
-import os
 import json
 from pathlib import Path
 from typing import Dict, Iterable, List, Tuple
 
 import numpy as np
 import scipy.sparse as sp
+
+from flywire_snn.connectome.auth import _strip_unreadable_path_entries
 
 
 NT_SIGN = {
@@ -15,23 +16,6 @@ NT_SIGN = {
     "serotonin": 1.0,
     "octopamine": 1.0,
 }
-
-
-def _sanitize_path_for_navis() -> None:
-    # navis probes PATH entries for external tools; some Windows entries can be unreadable.
-    raw = os.environ.get("PATH", "")
-    if not raw:
-        return
-    safe_entries = []
-    for entry in raw.split(os.pathsep):
-        if not entry:
-            continue
-        try:
-            _ = Path(entry).exists()
-            safe_entries.append(entry)
-        except (PermissionError, OSError):
-            continue
-    os.environ["PATH"] = os.pathsep.join(safe_entries)
 
 
 def _signed_weight(nt_label: str, weight: float) -> float:
@@ -64,7 +48,7 @@ def _build_sparse_from_edges(
 
 
 def _query_neuron_ids(max_neurons: int, dataset: str, materialization: str) -> List[int]:
-    _sanitize_path_for_navis()
+    _strip_unreadable_path_entries()
     from fafbseg import flywire
 
     flywire.set_default_dataset(dataset)
@@ -84,7 +68,7 @@ def _query_neuron_ids(max_neurons: int, dataset: str, materialization: str) -> L
 
 
 def _query_edges(ids: Iterable[int], materialization: str, dataset: str):
-    _sanitize_path_for_navis()
+    _strip_unreadable_path_entries()
     from fafbseg import flywire
     mat = 630 if dataset == "public" and str(materialization) == "auto" else materialization
 

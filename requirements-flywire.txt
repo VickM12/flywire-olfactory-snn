@@ -2,3 +2,4 @@
 # Install after base requirements.
 fafbseg
 caveclient
+python-dotenv

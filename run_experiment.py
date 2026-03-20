@@ -10,6 +10,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from flywire_snn.config import ExperimentConfig
+from flywire_snn.connectome.auth import apply_flywire_token_from_env, load_dotenv_if_present
 from flywire_snn.experiment import run_experiment
 
 
@@ -53,6 +54,8 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     configure_logging(args.result_dir, args.log_level)
+    load_dotenv_if_present(ROOT)
+    apply_flywire_token_from_env()
     cfg = ExperimentConfig(
         epochs=args.epochs,
         batch_size=args.batch_size,

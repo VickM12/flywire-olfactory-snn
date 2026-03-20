@@ -77,3 +77,4 @@ wandb/
 checkpoints/
 
 *.metadata.json
+*.meta.json
