@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import math
 from collections import defaultdict
+from datetime import date
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -306,6 +307,7 @@ def run_experiment(cfg: ExperimentConfig) -> Dict[str, object]:
 
     cfg_payload = {k: (str(v) if isinstance(v, Path) else v) for k, v in cfg.__dict__.items()}
 
+    comparison_path = cfg.result_dir / f"comparison-{date.today().isoformat()}.json"
     payload: Dict[str, object] = {
         "config": cfg_payload,
         "connectome": conn_log,
@@ -315,8 +317,9 @@ def run_experiment(cfg: ExperimentConfig) -> Dict[str, object]:
         },
         "summary": summary_json,
         "per_run": per_run_rows,
+        "comparison_json_path": str(comparison_path),
     }
 
-    save_json(cfg.result_dir / "comparison.json", payload)
-    logger.info("Saved comparison JSON to %s", cfg.result_dir / "comparison.json")
+    save_json(comparison_path, payload)
+    logger.info("Saved comparison JSON to %s", comparison_path)
     return payload

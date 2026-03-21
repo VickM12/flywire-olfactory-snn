@@ -89,7 +89,8 @@ def main() -> None:
         print("\n=== Hallem–Carlson (secondary) ===\n")
         print(format_summary_table(summ["HallemCarlson"]))
 
-    print(f"\nSaved results to: {cfg.result_dir / 'comparison.json'}")
+    out = payload.get("comparison_json_path") if isinstance(payload, dict) else None
+    print(f"\nSaved results to: {out or cfg.result_dir}")
     print(json.dumps(summ, indent=2))
 
 

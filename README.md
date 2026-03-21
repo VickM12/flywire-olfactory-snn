@@ -57,7 +57,7 @@ python run_experiment.py --epochs 80 --max-neurons 800
 
 | Artifact | Contents |
 |----------|----------|
-| `results/comparison.json` | Full config snapshot, connectome metadata (including **edge count**), dataset provenance, **aggregated mean ± std** per model, and **`per_run`** rows for every fold/seed/model. |
+| `results/comparison-YYYY-MM-DD.json` | Full config snapshot (includes `comparison_json_path`), connectome metadata (including **edge count**), dataset provenance, **aggregated mean ± std** per model, and **`per_run`** rows for every fold/seed/model. Filename uses the **local calendar date** when the run finishes (same-day reruns overwrite). |
 | `results/run.log` | Per-epoch training lines and final **`test_acc`**, **`heldout_acc`**, spike sparsity, `stopped_epoch`, `best_val_acc`. |
 | Console | ASCII summary tables (DoOR and, if enabled, Hallem) — **test accuracy**, epochs to 80% (validation), spike sparsity (SNNs), parameter counts. |
 
