@@ -1,5 +1,0 @@
-# Optional FlyWire/connectome dependencies.
-# Install after base requirements.
-fafbseg
-caveclient
-python-dotenv
