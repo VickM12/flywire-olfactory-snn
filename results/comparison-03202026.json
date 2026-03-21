@@ -1,0 +1,851 @@
+{
+  "config": {
+    "seed": 7,
+    "epochs": 50,
+    "batch_size": 32,
+    "lr": 0.001,
+    "weight_decay": 1e-05,
+    "hidden_size": 256,
+    "snn_steps": 20,
+    "snn_dt": 1.0,
+    "snn_alpha": 100.0,
+    "noise_std": 0.08,
+    "train_trials_per_odor": 24,
+    "val_trials_per_odor": 8,
+    "test_trials_per_odor": 8,
+    "heldout_odor_fraction": 0.2,
+    "max_olfactory_neurons": 800,
+    "data_dir": "data",
+    "result_dir": "results",
+    "connectome_cache": "olfactory_connectome.npz",
+    "annotation_dataset": "public",
+    "materialization": "auto",
+    "rebuild_connectome": false,
+    "require_real_connectome": true,
+    "n_cv_folds": 5,
+    "n_seeds": 3,
+    "cv_val_fraction": 0.1,
+    "early_stopping_patience": 5,
+    "run_hallem_secondary": false,
+    "refresh_door_cache": false,
+    "base_shuffle_seed": 12345,
+    "base_sparse_seed": 54321
+  },
+  "connectome": {
+    "source": "cache",
+    "neurons": 800,
+    "edges": 14998
+  },
+  "datasets": {
+    "DoOR": {
+      "source": "door_merged_cache",
+      "path": "data\\processed\\door_or_merged.csv"
+    },
+    "HallemCarlson": {
+      "path": "data\\raw\\hallem_carlson_2006.csv",
+      "source": "synthetic_fallback"
+    }
+  },
+  "summary": {
+    "DoOR": {
+      "ConnectomeSNN": {
+        "test_acc": {
+          "mean": 0.4554106714628298,
+          "std": 0.012077277705394233
+        },
+        "epochs_to_80": {
+          "mean": null,
+          "std": null
+        },
+        "stopped_epoch": {
+          "mean": 27.0,
+          "std": 8.799350625391138
+        },
+        "spike_sparsity": {
+          "mean": 0.8018952524233209,
+          "std": 0.0056846219280770474
+        },
+        "params": 1235892
+      },
+      "ShuffledSNN": {
+        "test_acc": {
+          "mean": 0.4540317745803357,
+          "std": 0.012634259632883064
+        },
+        "epochs_to_80": {
+          "mean": null,
+          "std": null
+        },
+        "stopped_epoch": {
+          "mean": 24.733333333333334,
+          "std": 7.085867893880312
+        },
+        "spike_sparsity": {
+          "mean": 0.8032661912881499,
+          "std": 0.007195001603086293
+        },
+        "params": 1235892
+      },
+      "SparseMLP": {
+        "test_acc": {
+          "mean": 0.4822541966426858,
+          "std": 0.011157017503991177
+        },
+        "epochs_to_80": {
+          "mean": null,
+          "std": null
+        },
+        "stopped_epoch": {
+          "mean": 15.866666666666667,
+          "std": 2.5597618936887376
+        },
+        "spike_sparsity": {
+          "mean": null,
+          "std": null
+        },
+        "params": 1237492
+      },
+      "DenseMLP": {
+        "test_acc": {
+          "mean": 0.49174160671462835,
+          "std": 0.011969117843364093
+        },
+        "epochs_to_80": {
+          "mean": null,
+          "std": null
+        },
+        "stopped_epoch": {
+          "mean": 14.733333333333333,
+          "std": 2.6040261866871424
+        },
+        "spike_sparsity": {
+          "mean": null,
+          "std": null
+        },
+        "params": 1235147
+      }
+    }
+  },
+  "per_run": [
+    {
+      "dataset": "DoOR",
+      "fold": 0,
+      "seed": 7,
+      "model": "ConnectomeSNN",
+      "test_acc": 0.46560251798561153,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 34,
+      "best_val_acc": 0.46717625899280574,
+      "spike_sparsity": 0.8095432217172587,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 0,
+      "seed": 7,
+      "model": "ShuffledSNN",
+      "test_acc": 0.45616007194244607,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 26,
+      "best_val_acc": 0.4660521582733813,
+      "spike_sparsity": 0.8111229217309746,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 0,
+      "seed": 7,
+      "model": "SparseMLP",
+      "test_acc": 0.4831384892086331,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 14,
+      "best_val_acc": 0.4914568345323741,
+      "spike_sparsity": 0.0,
+      "params": 1237492
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 0,
+      "seed": 7,
+      "model": "DenseMLP",
+      "test_acc": 0.5002248201438849,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 12,
+      "best_val_acc": 0.4993255395683453,
+      "spike_sparsity": 0.0,
+      "params": 1235147
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 1,
+      "seed": 7,
+      "model": "ConnectomeSNN",
+      "test_acc": 0.44761690647482016,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 26,
+      "best_val_acc": 0.45301258992805754,
+      "spike_sparsity": 0.7964092844681779,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 1,
+      "seed": 7,
+      "model": "ShuffledSNN",
+      "test_acc": 0.44199640287769787,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 18,
+      "best_val_acc": 0.44469424460431656,
+      "spike_sparsity": 0.7869145134370108,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 1,
+      "seed": 7,
+      "model": "SparseMLP",
+      "test_acc": 0.47594424460431656,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 18,
+      "best_val_acc": 0.4761690647482014,
+      "spike_sparsity": 0.0,
+      "params": 1237492
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 1,
+      "seed": 7,
+      "model": "DenseMLP",
+      "test_acc": 0.48718525179856115,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 16,
+      "best_val_acc": 0.4885341726618705,
+      "spike_sparsity": 0.0,
+      "params": 1235147
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 2,
+      "seed": 7,
+      "model": "ConnectomeSNN",
+      "test_acc": 0.4635791366906475,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 28,
+      "best_val_acc": 0.46425359712230213,
+      "spike_sparsity": 0.7985779001558426,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 2,
+      "seed": 7,
+      "model": "ShuffledSNN",
+      "test_acc": 0.45076438848920863,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 20,
+      "best_val_acc": 0.45481115107913667,
+      "spike_sparsity": 0.793176485651689,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 2,
+      "seed": 7,
+      "model": "SparseMLP",
+      "test_acc": 0.4858363309352518,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 19,
+      "best_val_acc": 0.4880845323741007,
+      "spike_sparsity": 0.0,
+      "params": 1237492
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 2,
+      "seed": 7,
+      "model": "DenseMLP",
+      "test_acc": 0.4847122302158273,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 11,
+      "best_val_acc": 0.49303057553956836,
+      "spike_sparsity": 0.0,
+      "params": 1235147
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 3,
+      "seed": 7,
+      "model": "ConnectomeSNN",
+      "test_acc": 0.4590827338129496,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 41,
+      "best_val_acc": 0.4662769784172662,
+      "spike_sparsity": 0.8072383662779552,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 3,
+      "seed": 7,
+      "model": "ShuffledSNN",
+      "test_acc": 0.45481115107913667,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 30,
+      "best_val_acc": 0.458408273381295,
+      "spike_sparsity": 0.8087948507542231,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 3,
+      "seed": 7,
+      "model": "SparseMLP",
+      "test_acc": 0.48606115107913667,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 17,
+      "best_val_acc": 0.48830935251798563,
+      "spike_sparsity": 0.0,
+      "params": 1237492
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 3,
+      "seed": 7,
+      "model": "DenseMLP",
+      "test_acc": 0.4925809352517986,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 16,
+      "best_val_acc": 0.49595323741007197,
+      "spike_sparsity": 0.0,
+      "params": 1235147
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 4,
+      "seed": 7,
+      "model": "ConnectomeSNN",
+      "test_acc": 0.45481115107913667,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 19,
+      "best_val_acc": 0.45863309352517984,
+      "spike_sparsity": 0.8029217059663732,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 4,
+      "seed": 7,
+      "model": "ShuffledSNN",
+      "test_acc": 0.45593525179856115,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 24,
+      "best_val_acc": 0.45818345323741005,
+      "spike_sparsity": 0.8056532153122716,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 4,
+      "seed": 7,
+      "model": "SparseMLP",
+      "test_acc": 0.479091726618705,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 11,
+      "best_val_acc": 0.4835881294964029,
+      "spike_sparsity": 0.0,
+      "params": 1237492
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 4,
+      "seed": 7,
+      "model": "DenseMLP",
+      "test_acc": 0.4941546762589928,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 14,
+      "best_val_acc": 0.49527877697841727,
+      "spike_sparsity": 0.0,
+      "params": 1235147
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 0,
+      "seed": 1010,
+      "model": "ConnectomeSNN",
+      "test_acc": 0.4739208633093525,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 34,
+      "best_val_acc": 0.47931654676258995,
+      "spike_sparsity": 0.8059580712009677,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 0,
+      "seed": 1010,
+      "model": "ShuffledSNN",
+      "test_acc": 0.4799910071942446,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 37,
+      "best_val_acc": 0.48089028776978415,
+      "spike_sparsity": 0.807569188437016,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 0,
+      "seed": 1010,
+      "model": "SparseMLP",
+      "test_acc": 0.5013489208633094,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 13,
+      "best_val_acc": 0.502248201438849,
+      "spike_sparsity": 0.0,
+      "params": 1237492
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 0,
+      "seed": 1010,
+      "model": "DenseMLP",
+      "test_acc": 0.5116906474820144,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 12,
+      "best_val_acc": 0.5087679856115108,
+      "spike_sparsity": 0.0,
+      "params": 1235147
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 1,
+      "seed": 1010,
+      "model": "ConnectomeSNN",
+      "test_acc": 0.44064748201438847,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 26,
+      "best_val_acc": 0.4464928057553957,
+      "spike_sparsity": 0.8013684801918141,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 1,
+      "seed": 1010,
+      "model": "ShuffledSNN",
+      "test_acc": 0.4357014388489209,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 21,
+      "best_val_acc": 0.4404226618705036,
+      "spike_sparsity": 0.7995282710884971,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 1,
+      "seed": 1010,
+      "model": "SparseMLP",
+      "test_acc": 0.4626798561151079,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 19,
+      "best_val_acc": 0.47324640287769787,
+      "spike_sparsity": 0.0,
+      "params": 1237492
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 1,
+      "seed": 1010,
+      "model": "DenseMLP",
+      "test_acc": 0.47594424460431656,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 12,
+      "best_val_acc": 0.479091726618705,
+      "spike_sparsity": 0.0,
+      "params": 1235147
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 2,
+      "seed": 1010,
+      "model": "ConnectomeSNN",
+      "test_acc": 0.44739208633093525,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 16,
+      "best_val_acc": 0.4523381294964029,
+      "spike_sparsity": 0.7990709869124049,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 2,
+      "seed": 1010,
+      "model": "ShuffledSNN",
+      "test_acc": 0.4602068345323741,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 22,
+      "best_val_acc": 0.45638489208633093,
+      "spike_sparsity": 0.8050403555520148,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 2,
+      "seed": 1010,
+      "model": "SparseMLP",
+      "test_acc": 0.4858363309352518,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 13,
+      "best_val_acc": 0.489658273381295,
+      "spike_sparsity": 0.0,
+      "params": 1237492
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 2,
+      "seed": 1010,
+      "model": "DenseMLP",
+      "test_acc": 0.49010791366906475,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 19,
+      "best_val_acc": 0.49842625899280574,
+      "spike_sparsity": 0.0,
+      "params": 1235147
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 3,
+      "seed": 1010,
+      "model": "ConnectomeSNN",
+      "test_acc": 0.4629046762589928,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 35,
+      "best_val_acc": 0.47009892086330934,
+      "spike_sparsity": 0.806357351824534,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 3,
+      "seed": 1010,
+      "model": "ShuffledSNN",
+      "test_acc": 0.45481115107913667,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 16,
+      "best_val_acc": 0.45616007194244607,
+      "spike_sparsity": 0.8020957740948355,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 3,
+      "seed": 1010,
+      "model": "SparseMLP",
+      "test_acc": 0.48651079136690645,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 14,
+      "best_val_acc": 0.48988309352517984,
+      "spike_sparsity": 0.0,
+      "params": 1237492
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 3,
+      "seed": 1010,
+      "model": "DenseMLP",
+      "test_acc": 0.48785971223021585,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 13,
+      "best_val_acc": 0.49460431654676257,
+      "spike_sparsity": 0.0,
+      "params": 1235147
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 4,
+      "seed": 1010,
+      "model": "ConnectomeSNN",
+      "test_acc": 0.44244604316546765,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 21,
+      "best_val_acc": 0.44761690647482016,
+      "spike_sparsity": 0.8034019784104053,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 4,
+      "seed": 1010,
+      "model": "ShuffledSNN",
+      "test_acc": 0.45323741007194246,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 42,
+      "best_val_acc": 0.4516636690647482,
+      "spike_sparsity": 0.8157407829229781,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 4,
+      "seed": 1010,
+      "model": "SparseMLP",
+      "test_acc": 0.47189748201438847,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 16,
+      "best_val_acc": 0.47639388489208634,
+      "spike_sparsity": 0.0,
+      "params": 1237492
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 4,
+      "seed": 1010,
+      "model": "DenseMLP",
+      "test_acc": 0.48830935251798563,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 16,
+      "best_val_acc": 0.48988309352517984,
+      "spike_sparsity": 0.0,
+      "params": 1235147
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 0,
+      "seed": 2013,
+      "model": "ConnectomeSNN",
+      "test_acc": 0.46178057553956836,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 23,
+      "best_val_acc": 0.4626798561151079,
+      "spike_sparsity": 0.7930696376793674,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 0,
+      "seed": 2013,
+      "model": "ShuffledSNN",
+      "test_acc": 0.46560251798561153,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 28,
+      "best_val_acc": 0.47009892086330934,
+      "spike_sparsity": 0.8015331063339176,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 0,
+      "seed": 2013,
+      "model": "SparseMLP",
+      "test_acc": 0.493705035971223,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 14,
+      "best_val_acc": 0.4948291366906475,
+      "spike_sparsity": 0.0,
+      "params": 1237492
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 0,
+      "seed": 2013,
+      "model": "DenseMLP",
+      "test_acc": 0.5006744604316546,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 16,
+      "best_val_acc": 0.5011241007194245,
+      "spike_sparsity": 0.0,
+      "params": 1235147
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 1,
+      "seed": 2013,
+      "model": "ConnectomeSNN",
+      "test_acc": 0.4665017985611511,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 18,
+      "best_val_acc": 0.47077338129496404,
+      "spike_sparsity": 0.8072838348450424,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 1,
+      "seed": 2013,
+      "model": "ShuffledSNN",
+      "test_acc": 0.4680755395683453,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 20,
+      "best_val_acc": 0.4745953237410072,
+      "spike_sparsity": 0.8057025060379245,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 1,
+      "seed": 2013,
+      "model": "SparseMLP",
+      "test_acc": 0.49910071942446044,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 16,
+      "best_val_acc": 0.5035971223021583,
+      "spike_sparsity": 0.0,
+      "params": 1237492
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 1,
+      "seed": 2013,
+      "model": "DenseMLP",
+      "test_acc": 0.5134892086330936,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 14,
+      "best_val_acc": 0.5150629496402878,
+      "spike_sparsity": 0.0,
+      "params": 1235147
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 2,
+      "seed": 2013,
+      "model": "ConnectomeSNN",
+      "test_acc": 0.45705935251798563,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 23,
+      "best_val_acc": 0.46110611510791366,
+      "spike_sparsity": 0.8001494486554922,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 2,
+      "seed": 2013,
+      "model": "ShuffledSNN",
+      "test_acc": 0.45256294964028776,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 23,
+      "best_val_acc": 0.45616007194244607,
+      "spike_sparsity": 0.8070758775841417,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 2,
+      "seed": 2013,
+      "model": "SparseMLP",
+      "test_acc": 0.4799910071942446,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 18,
+      "best_val_acc": 0.48044064748201437,
+      "spike_sparsity": 0.0,
+      "params": 1237492
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 2,
+      "seed": 2013,
+      "model": "DenseMLP",
+      "test_acc": 0.49055755395683454,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 16,
+      "best_val_acc": 0.49303057553956836,
+      "spike_sparsity": 0.0,
+      "params": 1235147
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 3,
+      "seed": 2013,
+      "model": "ConnectomeSNN",
+      "test_acc": 0.45998201438848924,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 44,
+      "best_val_acc": 0.4676258992805755,
+      "spike_sparsity": 0.8070178163137369,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 3,
+      "seed": 2013,
+      "model": "ShuffledSNN",
+      "test_acc": 0.4527877697841727,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 24,
+      "best_val_acc": 0.458408273381295,
+      "spike_sparsity": 0.8021183674284018,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 3,
+      "seed": 2013,
+      "model": "SparseMLP",
+      "test_acc": 0.479091726618705,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 19,
+      "best_val_acc": 0.4889838129496403,
+      "spike_sparsity": 0.0,
+      "params": 1237492
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 3,
+      "seed": 2013,
+      "model": "DenseMLP",
+      "test_acc": 0.4919064748201439,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 20,
+      "best_val_acc": 0.49460431654676257,
+      "spike_sparsity": 0.0,
+      "params": 1235147
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 4,
+      "seed": 2013,
+      "model": "ConnectomeSNN",
+      "test_acc": 0.4278327338129496,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 17,
+      "best_val_acc": 0.43030575539568344,
+      "spike_sparsity": 0.7900607017304401,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 4,
+      "seed": 2013,
+      "model": "ShuffledSNN",
+      "test_acc": 0.4278327338129496,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 20,
+      "best_val_acc": 0.43592625899280574,
+      "spike_sparsity": 0.7969266529563521,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 4,
+      "seed": 2013,
+      "model": "SparseMLP",
+      "test_acc": 0.4635791366906475,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 17,
+      "best_val_acc": 0.46785071942446044,
+      "spike_sparsity": 0.0,
+      "params": 1237492
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 4,
+      "seed": 2013,
+      "model": "DenseMLP",
+      "test_acc": 0.46672661870503596,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 14,
+      "best_val_acc": 0.47819244604316546,
+      "spike_sparsity": 0.0,
+      "params": 1235147
+    }
+  ]
+}
