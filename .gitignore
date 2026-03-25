@@ -79,3 +79,5 @@ checkpoints/
 *.metadata.json
 *.meta.json
 /data
+
+/results

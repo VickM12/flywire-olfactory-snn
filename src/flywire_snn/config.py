@@ -1,5 +1,14 @@
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Tuple
+
+# All experiment conditions; `models_to_run` selects a subset for a given run.
+ALL_MODEL_NAMES: Tuple[str, ...] = (
+    "ConnectomeSNN",
+    "ShuffledSNN",
+    "SparseMLP",
+    "DenseMLP",
+)
 
 
 @dataclass
@@ -34,3 +43,4 @@ class ExperimentConfig:
     refresh_door_cache: bool = False
     base_shuffle_seed: int = 12_345
     base_sparse_seed: int = 54_321
+    models_to_run: Tuple[str, ...] = ALL_MODEL_NAMES

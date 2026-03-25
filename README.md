@@ -53,6 +53,16 @@ This includes PyTorch, Norse, scientific stack, and **FlyWire/CAVE clients** (`f
 python run_experiment.py --epochs 80 --max-neurons 800
 ```
 
+## GUI
+
+If you prefer a local GUI to launch runs and browse results:
+
+```powershell
+streamlit run gui_app.py
+```
+
+The sidebar includes a **Models to train** multiselect (same names as `--models`). The **Live log** panel tails `results/run.log` about twice per second while the app is open (it runs the experiment in a background subprocess so logs can stream). Use **Compact format** and **Hide noisy third-party DEBUG** if `DEBUG` level floods the view with library internals.
+
 ## Outputs
 
 | Artifact | Contents |
@@ -83,6 +93,7 @@ python run_experiment.py --epochs 80 --max-neurons 800
 | `--skip-hallem-secondary` | off | Run **DoOR only** (skip Hallem–Carlson). |
 | `--refresh-door-cache` | off | Re-download/merge DoOR CSVs. |
 | `--log-level` | `INFO` | Logging verbosity. |
+| `--models` … | all four | Train only the listed models: `ConnectomeSNN`, `ShuffledSNN`, `SparseMLP`, `DenseMLP`. Example: `--models ConnectomeSNN DenseMLP`. |
 
 ## FlyWire / CAVE API token
 
