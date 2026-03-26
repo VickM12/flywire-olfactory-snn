@@ -54,6 +54,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--annotation-dataset", type=str, default="public")
     p.add_argument("--materialization", type=str, default="auto")
     p.add_argument("--rebuild-connectome", action="store_true")
+    p.add_argument(
+        "--no-fetch-positions",
+        action="store_true",
+        help="Skip FlyWire L2 centroid fetch (faster rebuild; GUI wiring falls back to force layout).",
+    )
     p.add_argument("--require-real-connectome", action="store_true")
     p.add_argument("--n-folds", type=int, default=5)
     p.add_argument("--n-seeds", type=int, default=5)
@@ -89,6 +94,7 @@ def main() -> None:
         annotation_dataset=args.annotation_dataset,
         materialization=args.materialization,
         rebuild_connectome=args.rebuild_connectome,
+        fetch_neuron_positions=not args.no_fetch_positions,
         require_real_connectome=args.require_real_connectome,
         n_cv_folds=args.n_folds,
         n_seeds=args.n_seeds,

@@ -197,6 +197,7 @@ def run_experiment(cfg: ExperimentConfig) -> Dict[str, object]:
         dataset=cfg.annotation_dataset,
         materialization=cfg.materialization,
         force_rebuild=cfg.rebuild_connectome,
+        fetch_positions=cfg.fetch_neuron_positions,
     )
     n_edges = resolve_edge_count(conn_meta, connectome)
     conn_log = dict(conn_meta)

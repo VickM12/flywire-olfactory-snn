@@ -34,6 +34,7 @@ class ExperimentConfig:
     annotation_dataset: str = "public"
     materialization: str = "auto"
     rebuild_connectome: bool = False
+    fetch_neuron_positions: bool = True
     require_real_connectome: bool = False
     n_cv_folds: int = 5
     n_seeds: int = 5

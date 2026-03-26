@@ -63,6 +63,8 @@ streamlit run gui_app.py
 
 The sidebar includes a **Models to train** multiselect (same names as `--models`). The **Live log** panel tails `results/run.log` about twice per second while the app is open (it runs the experiment in a background subprocess so logs can stream). Use **Compact format** and **Hide noisy third-party DEBUG** if `DEBUG` level floods the view with library internals.
 
+The **Model visualization** tab plots the cached connectome (subsampled weight heatmap, in/out degree histograms), an **interactive wiring diagram** (Plotly: local subgraph + force-directed 2D/3D layout — not true FlyWire brain coordinates), and a parameter-count / architecture summary aligned with `experiment.py` (needs `data/processed/olfactory_connectome.npz` and usually `door_or_merged.csv`).
+
 ## Outputs
 
 | Artifact | Contents |
@@ -92,6 +94,7 @@ The sidebar includes a **Models to train** multiselect (same names as `--models`
 | `--require-real-connectome` | off | Fail if a real FlyWire graph cannot be loaded. |
 | `--skip-hallem-secondary` | off | Run **DoOR only** (skip Hallem–Carlson). |
 | `--refresh-door-cache` | off | Re-download/merge DoOR CSVs. |
+| `--no-fetch-positions` | off | Skip FlyWire L2 centroid fetch (faster rebuild; wiring falls back to force layout). |
 | `--log-level` | `INFO` | Logging verbosity. |
 | `--models` … | all four | Train only the listed models: `ConnectomeSNN`, `ShuffledSNN`, `SparseMLP`, `DenseMLP`. Example: `--models ConnectomeSNN DenseMLP`. |
 
