@@ -19,3 +19,8 @@ norse
 fafbseg
 caveclient
 python-dotenv
+
+# GUI (optional)
+streamlit
+plotly
+networkx

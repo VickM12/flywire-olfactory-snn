@@ -5,14 +5,14 @@ import math
 from collections import defaultdict
 from datetime import date
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 import scipy.sparse as sp
 import torch
 import torch.nn as nn
 
-from flywire_snn.config import ExperimentConfig
+from flywire_snn.config import ALL_MODEL_NAMES, ExperimentConfig
 from flywire_snn.connectome.flywire_graph import load_or_build_connectome
 from flywire_snn.data.door import build_or_merge_door_matrix, summarize_door_source
 from flywire_snn.data.hallem import load_hallem_base_matrix, summarize_dataset_source
@@ -46,6 +46,21 @@ def _init_seed_for_model(global_seed: int, model_name: str) -> None:
     set_seed(global_seed + salt * 97)
 
 
+def normalize_models_to_run(names: Optional[Sequence[str]]) -> Tuple[str, ...]:
+    """Return a deduplicated tuple of model names; empty/None means all models."""
+    if not names:
+        return ALL_MODEL_NAMES
+    seen: List[str] = []
+    for n in names:
+        if n not in ALL_MODEL_NAMES:
+            raise ValueError(
+                f"Unknown model {n!r}; choose from {list(ALL_MODEL_NAMES)}"
+            )
+        if n not in seen:
+            seen.append(n)
+    return tuple(seen)
+
+
 def _build_models(
     cfg: ExperimentConfig,
     connectome: sp.csr_matrix,
@@ -53,25 +68,42 @@ def _build_models(
     num_classes: int,
     run_seed: int,
     fold: int,
+    model_names: Sequence[str],
 ) -> Dict[str, nn.Module]:
+    need = set(model_names)
     hidden_dim = int(connectome.shape[0])
     rho = recurrent_sparsity_ratio(connectome)
     shuffle_seed = cfg.base_shuffle_seed + run_seed * 10_007 + fold * 17
     sparse_seed = cfg.base_sparse_seed + run_seed * 30_011 + fold * 19
 
-    connectome_snn = MaskedRecurrentLIFSNN(
-        input_dim=feature_dim,
-        hidden_dim=hidden_dim,
-        num_classes=num_classes,
-        adjacency=connectome,
-        steps=cfg.snn_steps,
-        alpha=cfg.snn_alpha,
-    )
-    p_snn = _parameter_count(connectome_snn)
+    out: Dict[str, nn.Module] = {}
+    p_snn: Optional[int] = None
 
-    return {
-        "ConnectomeSNN": connectome_snn,
-        "ShuffledSNN": ShuffledSNN(
+    if "ConnectomeSNN" in need:
+        connectome_snn = MaskedRecurrentLIFSNN(
+            input_dim=feature_dim,
+            hidden_dim=hidden_dim,
+            num_classes=num_classes,
+            adjacency=connectome,
+            steps=cfg.snn_steps,
+            alpha=cfg.snn_alpha,
+        )
+        p_snn = _parameter_count(connectome_snn)
+        out["ConnectomeSNN"] = connectome_snn
+    elif "DenseMLP" in need:
+        tmp = MaskedRecurrentLIFSNN(
+            input_dim=feature_dim,
+            hidden_dim=hidden_dim,
+            num_classes=num_classes,
+            adjacency=connectome,
+            steps=cfg.snn_steps,
+            alpha=cfg.snn_alpha,
+        )
+        p_snn = _parameter_count(tmp)
+        del tmp
+
+    if "ShuffledSNN" in need:
+        out["ShuffledSNN"] = ShuffledSNN(
             input_dim=feature_dim,
             hidden_dim=hidden_dim,
             num_classes=num_classes,
@@ -79,16 +111,21 @@ def _build_models(
             shuffle_seed=shuffle_seed,
             steps=cfg.snn_steps,
             alpha=cfg.snn_alpha,
-        ),
-        "SparseMLP": SparseMLP(
+        )
+    if "SparseMLP" in need:
+        out["SparseMLP"] = SparseMLP(
             input_dim=feature_dim,
             hidden_dim=hidden_dim,
             num_classes=num_classes,
             sparsity_ratio=rho,
             seed=sparse_seed,
-        ),
-        "DenseMLP": DenseMLP.matched_to_connectome_snn(feature_dim, num_classes, p_snn),
-    }
+        )
+    if "DenseMLP" in need:
+        if p_snn is None:
+            raise RuntimeError("DenseMLP requires ConnectomeSNN parameter count (internal error)")
+        out["DenseMLP"] = DenseMLP.matched_to_connectome_snn(feature_dim, num_classes, p_snn)
+
+    return out
 
 
 def _aggregate(values: List[float]) -> Tuple[float, float]:
@@ -148,6 +185,8 @@ def format_summary_table(summary_dataset: Dict[str, Any]) -> str:
 
 def run_experiment(cfg: ExperimentConfig) -> Dict[str, object]:
     logger = logging.getLogger(__name__)
+    model_names = list(normalize_models_to_run(cfg.models_to_run))
+    logger.info("Models to run: %s", ", ".join(model_names))
     ensure_dir(cfg.data_dir / "processed")
     ensure_dir(cfg.result_dir)
 
@@ -158,6 +197,7 @@ def run_experiment(cfg: ExperimentConfig) -> Dict[str, object]:
         dataset=cfg.annotation_dataset,
         materialization=cfg.materialization,
         force_rebuild=cfg.rebuild_connectome,
+        fetch_positions=cfg.fetch_neuron_positions,
     )
     n_edges = resolve_edge_count(conn_meta, connectome)
     conn_log = dict(conn_meta)
@@ -196,7 +236,6 @@ def run_experiment(cfg: ExperimentConfig) -> Dict[str, object]:
         datasets.append(("HallemCarlson", hallem_base))
 
     per_run_rows: List[Dict[str, Any]] = []
-    model_names = ["ConnectomeSNN", "ShuffledSNN", "SparseMLP", "DenseMLP"]
 
     for dataset_name, base_x in datasets:
         n_classes = int(base_x.shape[0])
@@ -230,7 +269,15 @@ def run_experiment(cfg: ExperimentConfig) -> Dict[str, object]:
                     seed=run_seed + fold,
                 )
 
-                models = _build_models(cfg, connectome, ds.feature_dim, ds.num_classes, run_seed, fold)
+                models = _build_models(
+                    cfg,
+                    connectome,
+                    ds.feature_dim,
+                    ds.num_classes,
+                    run_seed,
+                    fold,
+                    model_names,
+                )
 
                 for mname in model_names:
                     _init_seed_for_model(run_seed, mname)

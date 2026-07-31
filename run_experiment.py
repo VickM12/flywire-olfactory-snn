@@ -9,9 +9,17 @@ SRC = ROOT / "src"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
-from flywire_snn.config import ExperimentConfig
+from flywire_snn.config import ALL_MODEL_NAMES, ExperimentConfig
 from flywire_snn.connectome.auth import apply_flywire_token_from_env, load_dotenv_if_present
 from flywire_snn.experiment import format_summary_table, run_experiment
+
+
+class _FlushingFileHandler(logging.FileHandler):
+    """Flush after each record so UIs tailing `run.log` see lines promptly."""
+
+    def emit(self, record: logging.LogRecord) -> None:
+        super().emit(record)
+        self.flush()
 
 
 def configure_logging(result_dir: Path, level_name: str) -> None:
@@ -30,7 +38,7 @@ def configure_logging(result_dir: Path, level_name: str) -> None:
     console.setFormatter(formatter)
     root.addHandler(console)
 
-    file_handler = logging.FileHandler(result_dir / "run.log", mode="w", encoding="utf-8")
+    file_handler = _FlushingFileHandler(result_dir / "run.log", mode="w", encoding="utf-8")
     file_handler.setFormatter(formatter)
     root.addHandler(file_handler)
 
@@ -46,6 +54,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--annotation-dataset", type=str, default="public")
     p.add_argument("--materialization", type=str, default="auto")
     p.add_argument("--rebuild-connectome", action="store_true")
+    p.add_argument(
+        "--no-fetch-positions",
+        action="store_true",
+        help="Skip FlyWire L2 centroid fetch (faster rebuild; GUI wiring falls back to force layout).",
+    )
     p.add_argument("--require-real-connectome", action="store_true")
     p.add_argument("--n-folds", type=int, default=5)
     p.add_argument("--n-seeds", type=int, default=5)
@@ -53,6 +66,16 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--skip-hallem-secondary", action="store_true")
     p.add_argument("--refresh-door-cache", action="store_true")
     p.add_argument("--log-level", type=str, default="INFO")
+    p.add_argument(
+        "--models",
+        nargs="+",
+        choices=list(ALL_MODEL_NAMES),
+        default=None,
+        metavar="MODEL",
+        help=(
+            "Train only these models (default: all). Example: --models ConnectomeSNN DenseMLP"
+        ),
+    )
     return p.parse_args()
 
 
@@ -71,12 +94,14 @@ def main() -> None:
         annotation_dataset=args.annotation_dataset,
         materialization=args.materialization,
         rebuild_connectome=args.rebuild_connectome,
+        fetch_neuron_positions=not args.no_fetch_positions,
         require_real_connectome=args.require_real_connectome,
         n_cv_folds=args.n_folds,
         n_seeds=args.n_seeds,
         early_stopping_patience=args.early_stopping_patience,
         run_hallem_secondary=not args.skip_hallem_secondary,
         refresh_door_cache=args.refresh_door_cache,
+        models_to_run=tuple(args.models) if args.models else ALL_MODEL_NAMES,
     )
     logging.getLogger(__name__).info("Run started")
     payload = run_experiment(cfg)
