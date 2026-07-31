@@ -1,0 +1,152 @@
+{
+  "config": {
+    "seed": 7,
+    "epochs": 1,
+    "batch_size": 32,
+    "lr": 0.001,
+    "weight_decay": 1e-05,
+    "hidden_size": 256,
+    "snn_steps": 20,
+    "snn_dt": 1.0,
+    "snn_alpha": 100.0,
+    "noise_std": 0.08,
+    "train_trials_per_odor": 24,
+    "val_trials_per_odor": 8,
+    "test_trials_per_odor": 8,
+    "heldout_odor_fraction": 0.2,
+    "max_olfactory_neurons": 800,
+    "data_dir": "data",
+    "result_dir": "results",
+    "connectome_cache": "olfactory_connectome.npz",
+    "annotation_dataset": "public",
+    "materialization": "auto",
+    "rebuild_connectome": true,
+    "fetch_neuron_positions": true,
+    "require_real_connectome": true,
+    "n_cv_folds": 2,
+    "n_seeds": 1,
+    "cv_val_fraction": 0.1,
+    "early_stopping_patience": 5,
+    "run_hallem_secondary": true,
+    "refresh_door_cache": false,
+    "base_shuffle_seed": 12345,
+    "base_sparse_seed": 54321,
+    "models_to_run": [
+      "ConnectomeSNN"
+    ]
+  },
+  "connectome": {
+    "source": "flywire",
+    "has_positions": true,
+    "positions_path": "data\\processed\\olfactory_connectome_positions.npz",
+    "positions_units": "nm",
+    "edges_kept": 14998,
+    "neurons": 800,
+    "edges": 14998
+  },
+  "datasets": {
+    "DoOR": {
+      "source": "door_merged_cache",
+      "path": "data\\processed\\door_or_merged.csv"
+    },
+    "HallemCarlson": {
+      "path": "data\\raw\\hallem_carlson_2006.csv",
+      "source": "synthetic_fallback"
+    }
+  },
+  "summary": {
+    "DoOR": {
+      "ConnectomeSNN": {
+        "test_acc": {
+          "mean": 0.08818247126436782,
+          "std": 0.024636981959445085
+        },
+        "epochs_to_80": {
+          "mean": null,
+          "std": null
+        },
+        "stopped_epoch": {
+          "mean": 1.0,
+          "std": 0.0
+        },
+        "spike_sparsity": {
+          "mean": 0.8390794266914497,
+          "std": 0.013776960969237282
+        },
+        "params": 1235892
+      }
+    },
+    "HallemCarlson": {
+      "ConnectomeSNN": {
+        "test_acc": {
+          "mean": 0.46875,
+          "std": 0.0
+        },
+        "epochs_to_80": {
+          "mean": null,
+          "std": null
+        },
+        "stopped_epoch": {
+          "mean": 1.0,
+          "std": 0.0
+        },
+        "spike_sparsity": {
+          "mean": 0.7768457957676479,
+          "std": 0.0034195255483433777
+        },
+        "params": 747310
+      }
+    }
+  },
+  "per_run": [
+    {
+      "dataset": "DoOR",
+      "fold": 0,
+      "seed": 7,
+      "model": "ConnectomeSNN",
+      "test_acc": 0.07076149425287356,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 1,
+      "best_val_acc": 0.06968390804597702,
+      "spike_sparsity": 0.8488212092169398,
+      "params": 1235892
+    },
+    {
+      "dataset": "DoOR",
+      "fold": 1,
+      "seed": 7,
+      "model": "ConnectomeSNN",
+      "test_acc": 0.10560344827586207,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 1,
+      "best_val_acc": 0.10344827586206896,
+      "spike_sparsity": 0.8293376441659597,
+      "params": 1235892
+    },
+    {
+      "dataset": "HallemCarlson",
+      "fold": 0,
+      "seed": 7,
+      "model": "ConnectomeSNN",
+      "test_acc": 0.46875,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 1,
+      "best_val_acc": 0.4575892857142857,
+      "spike_sparsity": 0.7792637654713221,
+      "params": 747310
+    },
+    {
+      "dataset": "HallemCarlson",
+      "fold": 1,
+      "seed": 7,
+      "model": "ConnectomeSNN",
+      "test_acc": 0.46875,
+      "epochs_to_80_val": -1,
+      "stopped_epoch": 1,
+      "best_val_acc": 0.47767857142857145,
+      "spike_sparsity": 0.7744278260639736,
+      "params": 747310
+    }
+  ],
+  "comparison_json_path": "results\\comparison-2026-03-25.json"
+}
