@@ -13,8 +13,7 @@ Compares a **FlyWire connectome–constrained recurrent LIF SNN** (`MaskedRecurr
 
 ## Data
 
-- **Primary (default):** **DoOR** — merged receptor matrix from [ropensci/DoOR.data](https://github.com/ropensci/DoOR.data) (`Or*.csv` files), cached under `data/processed/door_or_merged.csv`.
-- **Secondary (optional):** **Hallem–Carlson** — place `data/raw/hallem_carlson_2006.csv` if you have it; otherwise a **synthetic 110×24** fallback is generated for smoke tests.
+**DoOR** — merged receptor matrix from [ropensci/DoOR.data](https://github.com/ropensci/DoOR.data) (`Or*.csv` files), cached under `data/processed/door_or_merged.csv`. Licensed CC BY-SA 4.0.
 
 ## Experiment protocol
 
@@ -24,7 +23,7 @@ Compares a **FlyWire connectome–constrained recurrent LIF SNN** (`MaskedRecurr
 
 **SNN evaluation:** For models with `"SNN"` in the name, validation and test use **Monte Carlo averaging** (5 forward passes) over stochastic spike sampling so metrics are stable.
 
-**Scale:** Default `n_folds=5` and `n_seeds=5` ⇒ **25 runs per model per dataset** (5×5), **100 trainings per dataset** (4 models). With DoOR + Hallem secondary enabled, that doubles.
+**Scale:** Default `n_folds=5` and `n_seeds=5` → **25 runs per model** (5×5), **100 trainings total** (4 models).
 
 ## Quick start
 
@@ -43,11 +42,9 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-This includes PyTorch, Norse, scientific stack, and **FlyWire/CAVE clients** (`fafbseg`, `caveclient`, `python-dotenv`). If you only need synthetic data and no API, you can install a subset manually — the repo expects the full `requirements.txt` for real connectome pulls.
+4. **FlyWire token** (for real connectivity): set `FLYWIRE_TOKEN` or `CAVE_TOKEN` in the environment or copy `.env.example` → `.env`.
 
-4. **FlyWire token** (for real connectivity): set `FLYWIRE_TOKEN` or `CAVE_TOKEN` in the environment or copy `.env.example` → `.env` (see below).
-
-5. Run (DoOR primary, Hallem secondary unless skipped):
+5. Run:
 
 ```powershell
 python run_experiment.py --epochs 80 --max-neurons 800
@@ -55,25 +52,47 @@ python run_experiment.py --epochs 80 --max-neurons 800
 
 ## GUI
 
-If you prefer a local GUI to launch runs and browse results:
-
 ```powershell
 streamlit run gui_app.py
 ```
 
-The sidebar includes a **Models to train** multiselect (same names as `--models`). The **Live log** panel tails `results/run.log` about twice per second while the app is open (it runs the experiment in a background subprocess so logs can stream). Use **Compact format** and **Hide noisy third-party DEBUG** if `DEBUG` level floods the view with library internals.
+The sidebar includes a **Models to train** multiselect. The **Live log** panel tails `results/run.log` about twice per second while the app is open. The **Model visualization** tab plots the cached connectome (subsampled weight heatmap, in/out degree histograms), an **interactive wiring diagram** (Plotly), and a parameter-count / architecture summary.
 
-The **Model visualization** tab plots the cached connectome (subsampled weight heatmap, in/out degree histograms), an **interactive wiring diagram** (Plotly: local subgraph + force-directed 2D/3D layout — not true FlyWire brain coordinates), and a parameter-count / architecture summary aligned with `experiment.py` (needs `data/processed/olfactory_connectome.npz` and usually `door_or_merged.csv`).
+## Hugging Face upload
+
+After running the experiment, export the model, dataset, and a Streamlit Space demo to Hugging Face Hub:
+
+```powershell
+# Dry-run (stages files locally in _hf_staging/ without pushing):
+python export_to_hf.py --hf-user YOUR_USERNAME --dry-run
+
+# Push everything:
+python export_to_hf.py --hf-user YOUR_USERNAME
+
+# Push only the model, dataset, or Space:
+python export_to_hf.py --hf-user YOUR_USERNAME --only model
+python export_to_hf.py --hf-user YOUR_USERNAME --only dataset
+python export_to_hf.py --hf-user YOUR_USERNAME --only space
+```
+
+This creates three HF repos:
+
+| Resource | Repo ID | Contents |
+|----------|---------|----------|
+| **Model** | `YOUR_USERNAME/flywire-olfactory-snn` | Best ConnectomeSNN weights (safetensors), connectome topology, config, model card |
+| **Dataset** | `YOUR_USERNAME/door-olfactory-responses` | Processed DoOR odor × receptor CSV, dataset card (CC BY-SA 4.0) |
+| **Space** | `YOUR_USERNAME/flywire-olfactory-snn-demo` | Streamlit app for interactive connectome visualization |
+
+You must be logged in to HF (`huggingface-cli login`) before pushing.
 
 ## Outputs
 
 | Artifact | Contents |
 |----------|----------|
-| `results/comparison-YYYY-MM-DD.json` | Full config snapshot (includes `comparison_json_path`), connectome metadata (including **edge count**), dataset provenance, **aggregated mean ± std** per model, and **`per_run`** rows for every fold/seed/model. Filename uses the **local calendar date** when the run finishes (same-day reruns overwrite). |
-| `results/run.log` | Per-epoch training lines and final **`test_acc`**, **`heldout_acc`**, spike sparsity, `stopped_epoch`, `best_val_acc`. |
-| Console | ASCII summary tables (DoOR and, if enabled, Hallem) — **test accuracy**, epochs to 80% (validation), spike sparsity (SNNs), parameter counts. |
-
-**Summary JSON metrics** (per model, per dataset): `test_acc`, `epochs_to_80` (from validation), `stopped_epoch`, `spike_sparsity` (SNNs only; NaN for MLPs), `params`.
+| `results/comparison-YYYY-MM-DD.json` | Full config, connectome metadata, aggregated mean ± std per model, and `per_run` rows for every fold/seed/model. |
+| `results/run.log` | Per-epoch training lines and final `test_acc`, `heldout_acc`, spike sparsity, `stopped_epoch`, `best_val_acc`. |
+| `results/checkpoints/` | Per-run model checkpoints (`.pt` files with state dict + metadata). |
+| Console | ASCII summary table — test accuracy, epochs to 80%, spike sparsity, parameter counts. |
 
 ## CLI reference
 
@@ -84,7 +103,7 @@ The **Model visualization** tab plots the cached connectome (subsampled weight h
 | `--seed` | 7 | Base seed; each of `n_seeds` runs uses a derived seed. |
 | `--max-neurons` | 800 | Cap on olfactory subgraph size for FlyWire. |
 | `--data-dir` | `data` | Data and caches. |
-| `--result-dir` | `results` | Logs and JSON. |
+| `--result-dir` | `results` | Logs, JSON, and checkpoints. |
 | `--annotation-dataset` | `public` | FlyWire annotation dataset. |
 | `--materialization` | `auto` | FlyWire materialization version. |
 | `--n-folds` | 5 | CV folds over odor identities. |
@@ -92,31 +111,27 @@ The **Model visualization** tab plots the cached connectome (subsampled weight h
 | `--early-stopping-patience` | 5 | Early stopping patience on `val_acc`. |
 | `--rebuild-connectome` | off | Ignore cache and rebuild connectome. |
 | `--require-real-connectome` | off | Fail if a real FlyWire graph cannot be loaded. |
-| `--skip-hallem-secondary` | off | Run **DoOR only** (skip Hallem–Carlson). |
 | `--refresh-door-cache` | off | Re-download/merge DoOR CSVs. |
 | `--no-fetch-positions` | off | Skip FlyWire L2 centroid fetch (faster rebuild; wiring falls back to force layout). |
 | `--log-level` | `INFO` | Logging verbosity. |
-| `--models` … | all four | Train only the listed models: `ConnectomeSNN`, `ShuffledSNN`, `SparseMLP`, `DenseMLP`. Example: `--models ConnectomeSNN DenseMLP`. |
-
-## FlyWire / CAVE API token
-
-Connectivity and annotation queries use a token from [global.daf-apis.com](https://global.daf-apis.com). With `python-dotenv` installed, `run_experiment.py` loads `.env` and registers the secret via `fafbseg` when `FLYWIRE_TOKEN` or `CAVE_TOKEN` is set. **Do not commit `.env`** — it is gitignored.
-
-## Connectome cache
-
-The subgraph loader and cache live under `src/flywire_snn/connectome/`; the processed graph is stored at `data/processed/olfactory_connectome.npz` with metadata. The experiment logs **directed edge count** (nonzeros in the sparse matrix, or `edges` / `edges_kept` from metadata when present).
+| `--models` … | all four | Train only listed models: `ConnectomeSNN`, `ShuffledSNN`, `SparseMLP`, `DenseMLP`. |
 
 ## Project layout
 
 ```
 src/flywire_snn/
   config.py          # Experiment hyperparameters
-  experiment.py      # CV loops, models, aggregation, JSON
+  experiment.py      # CV loops, models, aggregation, checkpoint saving, JSON
   trainers.py        # Training, early stopping, evaluation
-  data/              # DoOR, Hallem, splits
+  data/              # DoOR loader, CV splits
   connectome/        # FlyWire load/cache, auth, degree shuffle
   models/            # SNN, ShuffledSNN, SparseMLP, DenseMLP
-run_experiment.py    # CLI entrypoint (adds `src/` to `sys.path`)
+  viz/               # Interactive wiring diagrams
+run_experiment.py    # CLI entrypoint
+gui_app.py           # Streamlit GUI
+export_to_hf.py      # Hugging Face Hub export (model + dataset + Space)
+hf_model_card.md     # Model card template
+hf_dataset_card.md   # Dataset card template
 ```
 
 Core **ConnectomeSNN** implementation: `src/flywire_snn/models/snn.py`.
@@ -125,3 +140,4 @@ Core **ConnectomeSNN** implementation: `src/flywire_snn/models/snn.py`.
 
 - Tuned for **CPU** training; adjust `--epochs` / `--batch-size` / `--n-folds` / `--n-seeds` for shorter dry runs.
 - First DoOR build downloads many CSVs from GitHub (one-time; then cached locally).
+- Model checkpoints are saved to `results/checkpoints/` after each training run.

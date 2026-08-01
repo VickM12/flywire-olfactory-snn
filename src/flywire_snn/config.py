@@ -40,7 +40,6 @@ class ExperimentConfig:
     n_seeds: int = 5
     cv_val_fraction: float = 0.1
     early_stopping_patience: int = 5
-    run_hallem_secondary: bool = True
     refresh_door_cache: bool = False
     base_shuffle_seed: int = 12_345
     base_sparse_seed: int = 54_321

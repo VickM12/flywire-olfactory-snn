@@ -63,7 +63,6 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--n-folds", type=int, default=5)
     p.add_argument("--n-seeds", type=int, default=5)
     p.add_argument("--early-stopping-patience", type=int, default=5)
-    p.add_argument("--skip-hallem-secondary", action="store_true")
     p.add_argument("--refresh-door-cache", action="store_true")
     p.add_argument("--log-level", type=str, default="INFO")
     p.add_argument(
@@ -99,7 +98,6 @@ def main() -> None:
         n_cv_folds=args.n_folds,
         n_seeds=args.n_seeds,
         early_stopping_patience=args.early_stopping_patience,
-        run_hallem_secondary=not args.skip_hallem_secondary,
         refresh_door_cache=args.refresh_door_cache,
         models_to_run=tuple(args.models) if args.models else ALL_MODEL_NAMES,
     )
@@ -110,10 +108,6 @@ def main() -> None:
     if "DoOR" in summ:
         print("\n=== DoOR (primary) ===\n")
         print(format_summary_table(summ["DoOR"]))
-    if "HallemCarlson" in summ:
-        print("\n=== Hallem–Carlson (secondary) ===\n")
-        print(format_summary_table(summ["HallemCarlson"]))
-
     out = payload.get("comparison_json_path") if isinstance(payload, dict) else None
     print(f"\nSaved results to: {out or cfg.result_dir}")
     print(json.dumps(summ, indent=2))

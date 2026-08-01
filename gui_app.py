@@ -495,7 +495,6 @@ with st.sidebar:
         refresh_door = st.checkbox("Refresh DoOR cache", value=False)
     with col2:
         require_real = st.checkbox("Require real connectome", value=False)
-        skip_hallem = st.checkbox("Skip Hallem secondary", value=False)
 
     log_level = st.selectbox("Log level", options=["INFO", "DEBUG", "WARNING", "ERROR"], index=0)
 
@@ -569,9 +568,6 @@ with tab_run:
                     args.append("--require-real-connectome")
                 if refresh_door:
                     args.append("--refresh-door-cache")
-                if skip_hallem:
-                    args.append("--skip-hallem-secondary")
-
                 old = st.session_state.exp_proc
                 if old is not None and old.poll() is None:
                     old.terminate()

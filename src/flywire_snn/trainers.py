@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import logging
 import math
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import torch
@@ -17,6 +18,7 @@ class TrainResult:
     final_spike_sparsity: float
     stopped_epoch: int
     best_val_acc: float
+    best_state_dict: Dict[str, torch.Tensor] | None = None
 
 
 def _accuracy(logits: torch.Tensor, y: torch.Tensor) -> float:
@@ -40,16 +42,20 @@ def evaluate(
     batch_size: int,
     mc_samples: int = 1,
     restrict_classes: Optional[torch.Tensor] = None,
+    device: Optional[torch.device] = None,
 ) -> Tuple[float, float]:
     model.eval()
+    if device is None:
+        device = next(model.parameters()).device
     if restrict_classes is not None:
-        restrict_classes = restrict_classes.to(torch.long).cpu()
+        restrict_classes = restrict_classes.to(torch.long).to(device)
     loader = DataLoader(TensorDataset(x, y), batch_size=batch_size, shuffle=False)
     accs = []
     sparsities = []
     for xb, yb in loader:
+        xb, yb = xb.to(device), yb.to(device)
         if restrict_classes is not None:
-            y_rel = torch.searchsorted(restrict_classes, yb.cpu().to(torch.long))
+            y_rel = torch.searchsorted(restrict_classes, yb.to(torch.long))
         if mc_samples <= 1:
             logits, sparsity = model(xb)
             logits = torch.nan_to_num(logits, nan=-1e9)
@@ -93,8 +99,11 @@ def train_model(
     early_stopping_patience: int = 5,
     heldout_x: Optional[torch.Tensor] = None,
     heldout_y: Optional[torch.Tensor] = None,
+    device: Optional[torch.device] = None,
 ) -> TrainResult:
     logger = logging.getLogger(__name__)
+    if device is None:
+        device = next(model.parameters()).device
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
     criterion = nn.CrossEntropyLoss()
     train_loader = DataLoader(TensorDataset(train_x, train_y), batch_size=batch_size, shuffle=True)
@@ -116,6 +125,7 @@ def train_model(
         epoch_sparse = 0.0
         num_batches = 0
         for xb, yb in train_loader:
+            xb, yb = xb.to(device), yb.to(device)
             optimizer.zero_grad()
             logits, sparsity = model(xb)
             loss = criterion(logits, yb)
@@ -130,7 +140,7 @@ def train_model(
         train_acc = epoch_acc / max(num_batches, 1)
         train_sparse = epoch_sparse / max(num_batches, 1)
         mc = 5 if "SNN" in model_name else 1
-        val_acc, _ = evaluate(model, val_x, val_y, batch_size=batch_size, mc_samples=mc)
+        val_acc, _ = evaluate(model, val_x, val_y, batch_size=batch_size, mc_samples=mc, device=device)
         if epochs_to_80 < 0 and val_acc >= 0.8:
             epochs_to_80 = epoch
 
@@ -170,10 +180,8 @@ def train_model(
     _load_state(model, best_state)
 
     mc = 5 if "SNN" in model_name else 1
-    test_acc, test_sparse = evaluate(model, test_x, test_y, batch_size=batch_size, mc_samples=mc)
+    test_acc, test_sparse = evaluate(model, test_x, test_y, batch_size=batch_size, mc_samples=mc, device=device)
     if heldout_x is not None and heldout_y is not None:
-        # Held-out generalization should be measured by choosing the correct
-        # held-out odor among *held-out candidates*, not among all seen odors.
         candidates = torch.unique(heldout_y).sort().values
         heldout_acc, _ = evaluate(
             model,
@@ -182,6 +190,7 @@ def train_model(
             batch_size=batch_size,
             mc_samples=mc,
             restrict_classes=candidates,
+            device=device,
         )
     else:
         heldout_acc = float("nan")
@@ -207,4 +216,5 @@ def train_model(
         final_spike_sparsity=test_sparse,
         stopped_epoch=stopped_epoch,
         best_val_acc=best_val,
+        best_state_dict=best_state,
     )

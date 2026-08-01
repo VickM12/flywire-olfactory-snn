@@ -76,6 +76,9 @@ wandb/
 # Torch / HF download caches if placed in-repo
 checkpoints/
 
+# HF export staging
+_hf_staging/
+
 *.metadata.json
 *.meta.json
 /data

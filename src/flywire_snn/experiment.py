@@ -15,7 +15,6 @@ import torch.nn as nn
 from flywire_snn.config import ALL_MODEL_NAMES, ExperimentConfig
 from flywire_snn.connectome.flywire_graph import load_or_build_connectome
 from flywire_snn.data.door import build_or_merge_door_matrix, summarize_door_source
-from flywire_snn.data.hallem import load_hallem_base_matrix, summarize_dataset_source
 from flywire_snn.data.splits import (
     build_splits_for_outer_fold_trials,
     build_splits_for_outer_fold_trials_seen_and_heldout,
@@ -27,6 +26,32 @@ from flywire_snn.models.sparse_mlp import recurrent_sparsity_ratio, SparseMLP
 from flywire_snn.models.snn import MaskedRecurrentLIFSNN
 from flywire_snn.trainers import train_model
 from flywire_snn.utils import ensure_dir, save_json, set_seed
+
+
+def save_checkpoint(
+    model: nn.Module,
+    state_dict: Dict[str, Any],
+    checkpoint_dir: Path,
+    model_name: str,
+    dataset_name: str,
+    seed: int,
+    fold: int,
+    meta: Dict[str, Any],
+) -> Path:
+    """Save a model checkpoint with architecture metadata for HF export."""
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    fname = f"{dataset_name}_{model_name}_seed{seed}_fold{fold}.pt"
+    path = checkpoint_dir / fname
+    payload = {
+        "model_state_dict": state_dict,
+        "model_name": model_name,
+        "dataset": dataset_name,
+        "seed": seed,
+        "fold": fold,
+        **meta,
+    }
+    torch.save(payload, path)
+    return path
 
 
 def _parameter_count(model: nn.Module) -> int:
@@ -183,8 +208,16 @@ def format_summary_table(summary_dataset: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _select_device() -> torch.device:
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    return torch.device("cpu")
+
+
 def run_experiment(cfg: ExperimentConfig) -> Dict[str, object]:
     logger = logging.getLogger(__name__)
+    device = _select_device()
+    logger.info("Using device: %s", device)
     model_names = list(normalize_models_to_run(cfg.models_to_run))
     logger.info("Models to run: %s", ", ".join(model_names))
     ensure_dir(cfg.data_dir / "processed")
@@ -229,11 +262,8 @@ def run_experiment(cfg: ExperimentConfig) -> Dict[str, object]:
             logger.warning(msg)
 
     door_base, _, _ = build_or_merge_door_matrix(cfg.data_dir, force_refresh=cfg.refresh_door_cache)
-    hallem_base = load_hallem_base_matrix(cfg.data_dir)
 
     datasets: List[Tuple[str, np.ndarray]] = [("DoOR", door_base)]
-    if cfg.run_hallem_secondary:
-        datasets.append(("HallemCarlson", hallem_base))
 
     per_run_rows: List[Dict[str, Any]] = []
 
@@ -281,7 +311,7 @@ def run_experiment(cfg: ExperimentConfig) -> Dict[str, object]:
 
                 for mname in model_names:
                     _init_seed_for_model(run_seed, mname)
-                    model = models[mname]
+                    model = models[mname].to(device)
                     result = train_model(
                         model=model,
                         train_x=ds.train_x,
@@ -298,7 +328,29 @@ def run_experiment(cfg: ExperimentConfig) -> Dict[str, object]:
                         early_stopping_patience=cfg.early_stopping_patience,
                         heldout_x=heldout_x,
                         heldout_y=heldout_y,
+                        device=device,
                     )
+                    ckpt_path = save_checkpoint(
+                        model=model,
+                        state_dict=result.best_state_dict or {},
+                        checkpoint_dir=cfg.result_dir / "checkpoints",
+                        model_name=mname,
+                        dataset_name=dataset_name,
+                        seed=run_seed,
+                        fold=fold,
+                        meta={
+                            "test_acc": result.test_acc,
+                            "best_val_acc": result.best_val_acc,
+                            "stopped_epoch": result.stopped_epoch,
+                            "feature_dim": ds.feature_dim,
+                            "num_classes": ds.num_classes,
+                            "hidden_dim": int(connectome.shape[0]),
+                            "snn_steps": cfg.snn_steps,
+                            "snn_alpha": cfg.snn_alpha,
+                        },
+                    )
+                    logger.info("[%s/%s] Saved checkpoint to %s", dataset_name, mname, ckpt_path)
+
                     per_run_rows.append(
                         {
                             "dataset": dataset_name,
@@ -311,6 +363,7 @@ def run_experiment(cfg: ExperimentConfig) -> Dict[str, object]:
                             "best_val_acc": result.best_val_acc,
                             "spike_sparsity": result.final_spike_sparsity,
                             "params": _parameter_count(model),
+                            "checkpoint": str(ckpt_path),
                         }
                     )
 
@@ -360,7 +413,6 @@ def run_experiment(cfg: ExperimentConfig) -> Dict[str, object]:
         "connectome": conn_log,
         "datasets": {
             "DoOR": summarize_door_source(cfg.data_dir),
-            "HallemCarlson": summarize_dataset_source(cfg.data_dir),
         },
         "summary": summary_json,
         "per_run": per_run_rows,

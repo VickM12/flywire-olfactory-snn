@@ -15,10 +15,14 @@ torchaudio
 # Spiking neural networks
 norse
 
-#FlyWire
+# FlyWire
 fafbseg
 caveclient
 python-dotenv
+
+# Hugging Face
+safetensors
+huggingface_hub
 
 # GUI (optional)
 streamlit
